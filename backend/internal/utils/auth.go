@@ -10,11 +10,13 @@ import (
 )
 
 func GenerateJWT(user *models.User) (string, error) {
+
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":    user.ID,
 		"email": user.Email,
 		"role":  user.Role,
-	})
+	},
+	)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 
@@ -41,10 +43,10 @@ func ValidateJWT(token string) (*models.User, error) {
 
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
 		user := &models.User{
-			Role:  claims["role"].(models.Role),
+			Role:  models.Role(claims["role"].(string)),
 			Email: claims["email"].(string),
 			Base: models.Base{
-				ID: claims["id"].(uuid.UUID),
+				ID: uuid.MustParse(claims["id"].(string)),
 			},
 		}
 

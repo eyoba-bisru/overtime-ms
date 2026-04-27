@@ -12,16 +12,6 @@ import (
 
 func CreateUserService(user *models.User) (string, error) {
 
-	if user.Email == "" {
-		return "", errors.New("email is required")
-	}
-	if user.PasswordHash == "" {
-		return "", errors.New("password is required")
-	}
-	if user.Name == "" {
-		return "", errors.New("name is required")
-	}
-
 	user.Role = models.Applicant
 	user.ID = uuid.New()
 
