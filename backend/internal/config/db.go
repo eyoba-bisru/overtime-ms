@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -29,4 +30,13 @@ func CloseDB() {
 	if DB != nil {
 		DB.Close()
 	}
+}
+
+func LoadEnv() error {
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		return err
+	}
+	return nil
 }

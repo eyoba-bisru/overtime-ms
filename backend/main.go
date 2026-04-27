@@ -8,11 +8,18 @@ import (
 )
 
 func main() {
+
+	dotenvErr := config.LoadEnv()
+	if dotenvErr != nil {
+		panic(dotenvErr)
+	}
+
 	config.DBConnect()
 	defer config.CloseDB()
 	config.CreateTables()
 
 	r := gin.Default()
 	r.POST("/register", handlers.CreateUserHandler)
+	r.POST("/login", handlers.LoginHandler)
 	r.Run(":8080")
 }

@@ -10,9 +10,10 @@ const (
 )
 
 type User struct {
-	Base     `json:",inline"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-	Role     Role   `json:"role"`
+	Base      `json:",inline"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	Password  string `json:"password"`
+	Role      Role   `json:"role"`
+	IsBlocked bool   `json:"is_blocked"`
 }
