@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type Role string
 
@@ -12,26 +14,14 @@ const (
 )
 
 type User struct {
-	Base            `json:",inline"`
-	Email           string    `json:"email"`
-	Name            string    `json:"name"`
-	PasswordHash    string    `json:"password_hash"`
-	Role            Role      `json:"role"`
-	IsBlocked       bool      `json:"is_blocked"`
-	LastLoginAt     time.Time `json:"last_login_at"`
-	EmailVerified   bool      `json:"email_verified"`
-	EmailVerifiedAt time.Time `json:"email_verified_at"`
-	DeletedAt       time.Time `json:"deleted_at"`
-}
-
-type UserResponse struct {
 	Base
-	Email           string    `json:"email"`
-	Name            string    `json:"name"`
-	Role            Role      `json:"role"`
-	IsBlocked       bool      `json:"is_blocked"`
-	LastLoginAt     time.Time `json:"last_login_at"`
-	EmailVerified   bool      `json:"email_verified"`
-	EmailVerifiedAt time.Time `json:"email_verified_at"`
-	DeletedAt       time.Time `json:"deleted_at"`
+	Email           string     `json:"email" db:"email"`
+	Name            string     `json:"name" db:"name"`
+	PasswordHash    string     `json:"-" db:"password_hash"`
+	Role            Role       `json:"role" db:"role"`
+	IsBlocked       bool       `json:"is_blocked" db:"is_blocked"`
+	EmailVerified   bool       `json:"email_verified" db:"email_verified"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty" db:"email_verified_at"`
+	LastLoginAt     *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	DeletedAt       *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 }

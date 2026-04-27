@@ -53,7 +53,8 @@ func LoginService(user *models.User) (string, error) {
 		return "", errors.New("user is blocked")
 	}
 
-	existingUser.LastLoginAt = time.Now().UTC()
+	now := time.Now()
+	existingUser.LastLoginAt = &now
 	_, err = repository.UpdateUserRepo(existingUser)
 	if err != nil {
 		return "", err

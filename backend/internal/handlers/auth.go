@@ -9,9 +9,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type UserInput struct {
+	Email        string `json:"email" binding:"required,email"`
+	PasswordHash string `json:"password" binding:"required"`
+	Name         string `json:"name" binding:"required"`
+}
+
 func CreateUserHandler(c *gin.Context) {
-	var user models.User
-	c.Bind(&user)
+	var userInput UserInput
+	if err := c.ShouldBind(&userInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user := models.User{
+		Email:        userInput.Email,
+		PasswordHash: userInput.PasswordHash,
+		Name:         userInput.Name,
+	}
+
 	data, err := services.CreateUserService(&user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -23,8 +39,17 @@ func CreateUserHandler(c *gin.Context) {
 }
 
 func LoginHandler(c *gin.Context) {
-	var user models.User
-	c.Bind(&user)
+	var userInput UserInput
+	if err := c.ShouldBind(&userInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user := models.User{
+		Email:        userInput.Email,
+		PasswordHash: userInput.PasswordHash,
+	}
+
 	token, err := services.LoginService(&user)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
