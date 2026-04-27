@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/eyoba-bisru/overtime-backend/internal/config"
 	"github.com/eyoba-bisru/overtime-backend/internal/handlers"
 	"github.com/gin-gonic/gin"
@@ -16,7 +18,9 @@ func main() {
 
 	config.DBConnect()
 	defer config.CloseDB()
-	config.CreateTables()
+	if err := config.Migrate(); err != nil {
+		log.Fatal(err)
+	}
 
 	r := gin.Default()
 	r.POST("/register", handlers.CreateUserHandler)

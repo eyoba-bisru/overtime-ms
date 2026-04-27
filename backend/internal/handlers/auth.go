@@ -17,6 +17,7 @@ func CreateUserHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully", "data": data})
 
 }

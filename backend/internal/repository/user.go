@@ -1,21 +1,19 @@
 package repository
 
 import (
-	"database/sql"
-
 	"github.com/eyoba-bisru/overtime-backend/internal/config"
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 )
 
-func CreateUserRepo(user *models.User) (sql.Result, error) {
+func CreateUserRepo(user *models.User) (string, error) {
+	var id string
 
-	data, err := config.DB.Exec("INSERT INTO users (id, email, name, password, role, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id", user.ID, user.Email, user.Name, user.Password, user.Role, user.CreatedAt, user.UpdatedAt)
-
+	err := config.DB.QueryRow("INSERT INTO users (id, email, name, password, role, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id", user.ID, user.Email, user.Name, user.Password, user.Role, user.CreatedAt, user.UpdatedAt).Scan(&id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return data, nil
+	return id, nil
 }
 
 func GetUserByEmailRepo(email string) (*models.User, error) {

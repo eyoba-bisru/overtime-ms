@@ -1,7 +1,6 @@
 package services
 
 import (
-	"database/sql"
 	"errors"
 
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
@@ -10,16 +9,16 @@ import (
 	"github.com/google/uuid"
 )
 
-func CreateUserService(user *models.User) (sql.Result, error) {
+func CreateUserService(user *models.User) (string, error) {
 
 	if user.Email == "" {
-		return nil, errors.New("email is required")
+		return "", errors.New("email is required")
 	}
 	if user.Password == "" {
-		return nil, errors.New("password is required")
+		return "", errors.New("password is required")
 	}
 	if user.Name == "" {
-		return nil, errors.New("name is required")
+		return "", errors.New("name is required")
 	}
 
 	user.Role = models.Applicant
@@ -27,13 +26,13 @@ func CreateUserService(user *models.User) (sql.Result, error) {
 
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	user.Password = string(hashedPassword)
 
 	data, err := repository.CreateUserRepo(user)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return data, nil
