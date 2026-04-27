@@ -1,35 +1,48 @@
 package config
 
-import "log"
+import (
+	"context"
+	"log"
+)
 
 func UserTable() error {
 	query := `
+	-- Extensions
 	CREATE EXTENSION IF NOT EXISTS pgcrypto;
+	CREATE EXTENSION IF NOT EXISTS citext;
 
+	-- Users Table
 	CREATE TABLE IF NOT EXISTS users (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
 		email CITEXT UNIQUE NOT NULL,
 
-		name TEXT NOT NULL
-			CHECK (char_length(name) >= 2),
+		name TEXT NOT NULL CHECK (char_length(name) >= 2),
 
-		password TEXT NOT NULL
-			CHECK (char_length(password) >= 6),
+		password_hash TEXT,
 
 		role TEXT NOT NULL DEFAULT 'applicant'
 			CHECK (role IN ('admin','checker','approver','applicant')),
 
 		is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
 
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+		email_verified_at TIMESTAMPTZ,
 
-		CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+		last_login_at TIMESTAMPTZ,
+
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		deleted_at TIMESTAMPTZ
 	);
+
+	-- Indexes
+	CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+	CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+	CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
 	`
 
-	_, err := DB.Exec(query)
+	_, err := DB.Exec(context.Background(), query)
 	return err
 }
 
@@ -51,31 +64,76 @@ func UserTrigger() error {
 	EXECUTE FUNCTION set_updated_at();
 	`
 
-	_, err := DB.Exec(query)
+	_, err := DB.Exec(context.Background(), query)
 	return err
 }
 
-// func OvertimeRequestTable() {
-// 	_, err := DB.Exec(`
-// 	CREATE TABLE IF NOT EXISTS overtime_requests (
-// 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-// 		user_id UUID NOT NULL CHECK (user_id IN (SELECT id FROM users)),
-// 		request_date DATE NOT NULL,
-// 		hours DECIMAL(10, 2) NOT NULL,
-// 		reason VARCHAR(255) NOT NULL,
-// 		status VARCHAR(50) NOT NULL,
-// 		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-// 		updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-// 		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-// 	);
-// `)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
+func OvertimeTable() error {
+	query := `
+	CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+	-- Enum types (safe + reusable)
+	DO $$ BEGIN
+		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'overtime_status') THEN
+			CREATE TYPE overtime_status AS ENUM ('pending', 'checked', 'approved', 'rejected');
+		END IF;
+	END $$;
+
+	DO $$ BEGIN
+		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'overtime_program') THEN
+			CREATE TYPE overtime_program AS ENUM ('night', 'weekend', 'holiday');
+		END IF;
+	END $$;
+
+	-- Table
+	CREATE TABLE IF NOT EXISTS overtimes (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+		user_id UUID NOT NULL,
+
+		date DATE NOT NULL,
+
+		start_time TIME NOT NULL,
+		end_time TIME NOT NULL,
+
+		job_done TEXT NOT NULL CHECK (char_length(job_done) >= 3),
+
+		status overtime_status NOT NULL DEFAULT 'pending',
+
+		program overtime_program NOT NULL,
+
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+		deleted_at TIMESTAMPTZ,
+
+		-- Constraints
+		CONSTRAINT fk_overtime_user
+			FOREIGN KEY (user_id)
+			REFERENCES users(id)
+			ON DELETE CASCADE,
+
+		CONSTRAINT valid_time_range
+			CHECK (start_time < end_time)
+	);
+
+	-- Indexes (VERY IMPORTANT for performance)
+	CREATE INDEX IF NOT EXISTS idx_overtimes_user_id ON overtimes(user_id);
+	CREATE INDEX IF NOT EXISTS idx_overtimes_status ON overtimes(status);
+	CREATE INDEX IF NOT EXISTS idx_overtimes_date ON overtimes(date);
+	CREATE INDEX IF NOT EXISTS idx_overtimes_program ON overtimes(program);
+	`
+
+	_, err := DB.Exec(context.Background(), query)
+	return err
+}
 
 func Migrate() error {
 	if err := UserTable(); err != nil {
+		return err
+	}
+
+	if err := OvertimeTable(); err != nil {
 		return err
 	}
 
@@ -87,12 +145,12 @@ func Migrate() error {
 }
 
 func DropTables() {
-	_, err := DB.Exec(`DROP TABLE IF EXISTS users;`)
+	_, err := DB.Exec(context.Background(), `DROP TABLE IF EXISTS users;`)
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = DB.Exec(`DROP TABLE IF EXISTS overtime_requests;`)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// _, err = DB.Exec(context.Background(), `DROP TABLE IF EXISTS overtimes;`)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }

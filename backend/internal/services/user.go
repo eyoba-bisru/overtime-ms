@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 	"github.com/eyoba-bisru/overtime-backend/internal/repository"
@@ -14,7 +15,7 @@ func CreateUserService(user *models.User) (string, error) {
 	if user.Email == "" {
 		return "", errors.New("email is required")
 	}
-	if user.Password == "" {
+	if user.PasswordHash == "" {
 		return "", errors.New("password is required")
 	}
 	if user.Name == "" {
@@ -24,11 +25,11 @@ func CreateUserService(user *models.User) (string, error) {
 	user.Role = models.Applicant
 	user.ID = uuid.New()
 
-	hashedPassword, err := utils.HashPassword(user.Password)
+	hashedPassword, err := utils.HashPassword(user.PasswordHash)
 	if err != nil {
 		return "", err
 	}
-	user.Password = string(hashedPassword)
+	user.PasswordHash = string(hashedPassword)
 
 	data, err := repository.CreateUserRepo(user)
 	if err != nil {
@@ -44,12 +45,18 @@ func LoginService(user *models.User) (string, error) {
 		return "", err
 	}
 
-	if !utils.CheckPasswordHash(user.Password, existingUser.Password) {
+	if !utils.CheckPasswordHash(user.PasswordHash, existingUser.PasswordHash) {
 		return "", errors.New("invalid credentials")
 	}
 
 	if existingUser.IsBlocked {
 		return "", errors.New("user is blocked")
+	}
+
+	existingUser.LastLoginAt = time.Now().UTC()
+	_, err = repository.UpdateUserRepo(existingUser)
+	if err != nil {
+		return "", err
 	}
 
 	token, err := utils.GenerateJWT(existingUser)

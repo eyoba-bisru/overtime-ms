@@ -6,7 +6,7 @@ import (
 	"github.com/eyoba-bisru/overtime-backend/internal/config"
 	"github.com/eyoba-bisru/overtime-backend/internal/handlers"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {

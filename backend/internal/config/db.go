@@ -1,28 +1,25 @@
 package config
 
 import (
-	"database/sql"
+	"context"
 	"log"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
-var DB *sql.DB
+var DB *pgxpool.Pool
 
 func DBConnect() {
-	db, err := sql.Open("postgres", "host=localhost dbname=mydb connect_timeout=5 user=postgres password=postgres sslmode=disable")
+	dsn := "host=localhost dbname=mydb connect_timeout=5 user=postgres password=postgres sslmode=disable"
+
+	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Verify connection works
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	DB = db // Store the open connection
+	DB = pool
 }
 
 // Optional: Close the connection when your application shuts down
