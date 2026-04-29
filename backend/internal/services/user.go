@@ -12,7 +12,9 @@ import (
 
 func CreateUserService(user *models.User) (string, error) {
 
-	user.Role = models.Applicant
+	if user.Role == "" {
+		user.Role = models.Applicant
+	}
 	user.ID = uuid.New()
 
 	hashedPassword, err := utils.HashPassword(user.PasswordHash)
