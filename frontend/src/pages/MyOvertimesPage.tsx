@@ -9,7 +9,6 @@ export default function MyOvertimesPage() {
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -20,7 +19,17 @@ export default function MyOvertimesPage() {
     setLoading(false);
   }, [page]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this request?')) return;
+    try {
+      await api.delete(`/overtime/${id}`);
+      fetchData();
+    } catch { /* handled by interceptor */ }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <Layout>
@@ -67,6 +76,11 @@ export default function MyOvertimesPage() {
                           <Link to={`/overtime/edit/${ot.id}`} className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)' }}>
                             ✎ Edit
                           </Link>
+                        )}
+                        {ot.status === 'pending' && (
+                          <button onClick={() => handleDelete(ot.id)} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
+                            🗑 Delete
+                          </button>
                         )}
                       </td>
                     </tr>
