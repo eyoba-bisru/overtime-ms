@@ -9,53 +9,63 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UserInput struct {
+type LoginInput struct {
 	Email        string `json:"email" binding:"required,email"`
 	PasswordHash string `json:"password" binding:"required"`
-	Name         string `json:"name" binding:"required"`
-}
-
-func CreateUserHandler(c *gin.Context) {
-	var userInput UserInput
-	if err := c.ShouldBind(&userInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	user := models.User{
-		Email:        userInput.Email,
-		PasswordHash: userInput.PasswordHash,
-		Name:         userInput.Name,
-	}
-
-	data, err := services.CreateUserService(&user)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully", "data": data})
-
 }
 
 func LoginHandler(c *gin.Context) {
-	var userInput UserInput
-	if err := c.ShouldBind(&userInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var loginInput LoginInput
+	if err := c.ShouldBind(&loginInput); err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	user := models.User{
-		Email:        userInput.Email,
-		PasswordHash: userInput.PasswordHash,
+		Email:        loginInput.Email,
+		PasswordHash: loginInput.PasswordHash,
 	}
 
-	token, err := services.LoginService(&user)
+	userData, token, forcePasswordChange, err := services.LoginService(&user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, models.APIResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	c.SetCookie("token", token, 3600, "/", os.Getenv("HOST"), false, true)
-	c.JSON(http.StatusOK, gin.H{"message": "login successful"})
+	c.JSON(http.StatusOK, models.APIResponse{
+		Success: true,
+		Message: "Login successful",
+		Data: gin.H{
+			"force_password_change": forcePasswordChange,
+			"user": gin.H{
+				"id":    userData.ID,
+				"email": userData.Email,
+				"name":  userData.Name,
+				"role":  userData.Role,
+			},
+		},
+	})
+}
+
+type ChangePasswordInput struct {
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+func ChangePasswordHandler(c *gin.Context) {
+	var input ChangePasswordInput
+	if err := c.ShouldBind(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	user := c.MustGet("user").(*models.User)
+
+	err := services.ChangePasswordService(user.ID, input.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "Password changed successfully"})
 }

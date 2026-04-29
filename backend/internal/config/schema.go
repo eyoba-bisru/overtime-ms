@@ -22,12 +22,14 @@ func UserTable() error {
 		password_hash TEXT,
 
 		role TEXT NOT NULL DEFAULT 'applicant'
-			CHECK (role IN ('admin','checker','approver','applicant')),
+			CHECK (role IN ('admin','checker','approver','applicant','finance')),
 
 		is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
 
 		email_verified BOOLEAN NOT NULL DEFAULT FALSE,
 		email_verified_at TIMESTAMPTZ,
+
+		force_password_change BOOLEAN NOT NULL DEFAULT FALSE,
 
 		last_login_at TIMESTAMPTZ,
 
@@ -35,6 +37,13 @@ func UserTable() error {
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 		deleted_at TIMESTAMPTZ
 	);
+
+	-- Add columns if they don't exist (Migration support)
+	DO $$ BEGIN
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='force_password_change') THEN
+			ALTER TABLE users ADD COLUMN force_password_change BOOLEAN NOT NULL DEFAULT FALSE;
+		END IF;
+	END $$;
 
 	-- Indexes
 	CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -101,6 +110,7 @@ func OvertimeTable() error {
 		status overtime_status NOT NULL DEFAULT 'pending',
 
 		program overtime_program NOT NULL,
+		duration NUMERIC(5,2) NOT NULL DEFAULT 0,
 
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

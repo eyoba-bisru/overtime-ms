@@ -33,5 +33,6 @@ type Overtime struct {
 	JobDone   string          `json:"job_done" db:"job_done"`
 	Status    OvertimeStatus  `json:"status" db:"status"`
 	Program   OvertimeProgram `json:"program" db:"program"`
+	Duration  float64         `json:"duration" db:"duration"`
 	DeletedAt *time.Time      `json:"deleted_at,omitempty" db:"deleted_at"`
 }

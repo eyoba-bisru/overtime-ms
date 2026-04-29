@@ -29,31 +29,40 @@ func CreateUserService(user *models.User) (string, error) {
 	return data, nil
 }
 
-func LoginService(user *models.User) (string, error) {
+func LoginService(user *models.User) (*models.User, string, bool, error) {
 	existingUser, err := repository.GetUserByEmailRepo(user.Email)
 	if err != nil {
-		return "", err
+		return nil, "", false, err
 	}
 
 	if !utils.CheckPasswordHash(user.PasswordHash, existingUser.PasswordHash) {
-		return "", errors.New("invalid credentials")
+		return nil, "", false, errors.New("invalid credentials")
 	}
 
 	if existingUser.IsBlocked {
-		return "", errors.New("user is blocked")
+		return nil, "", false, errors.New("user is blocked")
 	}
 
 	now := time.Now()
 	existingUser.LastLoginAt = &now
 	_, err = repository.UpdateUserRepo(existingUser)
 	if err != nil {
-		return "", err
+		return nil, "", false, err
 	}
 
 	token, err := utils.GenerateJWT(existingUser)
 	if err != nil {
-		return "", err
+		return nil, "", false, err
 	}
 
-	return token, nil
+	return existingUser, token, existingUser.ForcePasswordChange, nil
+}
+
+func ChangePasswordService(userID uuid.UUID, newPassword string) error {
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	return repository.UpdateUserPasswordRepo(userID.String(), hashedPassword, false)
 }

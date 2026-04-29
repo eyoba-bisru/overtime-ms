@@ -11,6 +11,7 @@ const (
 	Checker   Role = "checker"
 	Approver  Role = "approver"
 	Applicant Role = "applicant"
+	Finance   Role = "finance"
 )
 
 type User struct {
@@ -18,10 +19,11 @@ type User struct {
 	Email           string     `json:"email" db:"email"`
 	Name            string     `json:"name" db:"name"`
 	PasswordHash    string     `json:"-" db:"password_hash"`
-	Role            Role       `json:"role" db:"role"`
-	IsBlocked       bool       `json:"is_blocked" db:"is_blocked"`
-	EmailVerified   bool       `json:"email_verified" db:"email_verified"`
-	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty" db:"email_verified_at"`
-	LastLoginAt     *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
-	DeletedAt       *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+	Role                Role       `json:"role" db:"role"`
+	IsBlocked           bool       `json:"is_blocked" db:"is_blocked"`
+	EmailVerified       bool       `json:"email_verified" db:"email_verified"`
+	EmailVerifiedAt     *time.Time `json:"email_verified_at,omitempty" db:"email_verified_at"`
+	ForcePasswordChange bool       `json:"force_password_change" db:"force_password_change"`
+	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
+	DeletedAt           *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 }
