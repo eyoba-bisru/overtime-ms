@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -47,7 +48,7 @@ func main() {
 	{
 		admin.POST("/users", handlers.AdminCreateUserHandler)
 		admin.GET("/users", handlers.AdminGetUsersHandler)
-		admin.PATCH("/users/:id/role", handlers.AdminChangeRoleHandler)
+		admin.PATCH("/users/:id", handlers.AdminUpdateUserHandler)
 		admin.PATCH("/users/:id/block", handlers.AdminBlockUserHandler)
 		admin.PATCH("/users/:id/reset-password", handlers.AdminResetPasswordHandler)
 		admin.DELETE("/users/:id", handlers.AdminDeleteUserHandler)

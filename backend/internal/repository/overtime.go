@@ -21,7 +21,7 @@ func CreateOvertimeRepo(overtime *models.Overtime) (uuid.UUID, error) {
 
 func GetOvertimeByIDRepo(id uuid.UUID) (*models.Overtime, error) {
 	var overtime models.Overtime
-	err := config.DB.QueryRow(context.Background(), "SELECT id, user_id, date::TEXT, start_time::TEXT, end_time::TEXT, job_done, status, program, duration, created_at, updated_at FROM overtimes WHERE id = $1 AND deleted_at IS NULL", id).Scan(&overtime.ID, &overtime.UserID, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
+	err := config.DB.QueryRow(context.Background(), "SELECT o.id, o.user_id, u.name as user_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at FROM overtimes o JOIN users u ON o.user_id = u.id WHERE o.id = $1 AND o.deleted_at IS NULL", id).Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -35,19 +35,19 @@ func buildOvertimeQuery(role models.Role, status models.OvertimeStatus, userID u
 
 	switch role {
 	case models.Applicant:
-		where = fmt.Sprintf("user_id = $%d AND deleted_at IS NULL", argIdx)
+		where = fmt.Sprintf("o.user_id = $%d AND o.deleted_at IS NULL", argIdx)
 		args = append(args, userID)
 		argIdx++
 	case models.Checker, models.Approver, models.Finance:
-		where = fmt.Sprintf("status = $%d AND deleted_at IS NULL", argIdx)
+		where = fmt.Sprintf("o.status = $%d AND o.deleted_at IS NULL", argIdx)
 		args = append(args, status)
 		argIdx++
 	case models.Admin:
-		where = "deleted_at IS NULL"
+		where = "o.deleted_at IS NULL"
 	}
 
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM overtimes WHERE %s", where)
-	selectQuery := fmt.Sprintf("SELECT id, user_id, date::TEXT, start_time::TEXT, end_time::TEXT, job_done, status, program, duration, created_at, updated_at FROM overtimes WHERE %s ORDER BY created_at DESC", where)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM overtimes o WHERE %s", where)
+	selectQuery := fmt.Sprintf("SELECT o.id, o.user_id, u.name as user_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at FROM overtimes o JOIN users u ON o.user_id = u.id WHERE %s ORDER BY o.created_at DESC", where)
 
 	return selectQuery, countQuery, args
 }
@@ -80,7 +80,7 @@ func GetOvertimesRepo(userID uuid.UUID, role models.Role, status models.Overtime
 	var overtimes []models.Overtime
 	for rows.Next() {
 		var overtime models.Overtime
-		err := rows.Scan(&overtime.ID, &overtime.UserID, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
+		err := rows.Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}

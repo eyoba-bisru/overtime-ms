@@ -13,6 +13,8 @@ export default function UserManagementPage() {
   const [createForm, setCreateForm] = useState({ email: '', name: '', password: '', role: 'applicant' as Role });
   const [createError, setCreateError] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState<{ userId: string; password: string } | null>(null);
   const { showToast } = useToast();
 
@@ -44,15 +46,24 @@ export default function UserManagementPage() {
     setCreateLoading(false);
   };
 
-  const handleRoleChange = async (id: string, role: Role) => {
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser) return;
+    setEditLoading(true);
     try {
-      await api.patch(`/admin/users/${id}/role`, { role });
-      showToast({ type: 'success', title: 'Role Updated', message: 'User role has been updated.' });
+      await api.patch(`/admin/users/${editUser.id}`, {
+        email: editUser.email,
+        name: editUser.name,
+        role: editUser.role
+      });
+      showToast({ type: 'success', title: 'User Updated', message: 'User profile has been updated successfully.' });
+      setEditUser(null);
       await fetchUsers();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to update role';
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to update user';
       showToast({ type: 'error', title: 'Update Failed', message: msg });
     }
+    setEditLoading(false);
   };
 
   const handleBlock = async (id: string, isBlocked: boolean) => {
@@ -147,6 +158,42 @@ export default function UserManagementPage() {
         </div>
       )}
 
+      {/* Edit user modal */}
+      {editUser && (
+        <div className="modal-overlay" onClick={() => setEditUser(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edit User Profile</h3>
+              <button className="modal-close" onClick={() => setEditUser(null)}>✕</button>
+            </div>
+            <form onSubmit={handleUpdate}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Name</label>
+                  <input className="form-input" value={editUser.name} onChange={e => setEditUser(p => p ? ({ ...p, name: e.target.value }) : null)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email</label>
+                  <input type="email" className="form-input" value={editUser.email} onChange={e => setEditUser(p => p ? ({ ...p, email: e.target.value }) : null)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Role</label>
+                  <select className="form-select" value={editUser.role} onChange={e => setEditUser(p => p ? ({ ...p, role: e.target.value as Role }) : null)}>
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditUser(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={editLoading}>
+                  {editLoading ? <span className="spinner" /> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40 }}><span className="spinner" /></div>
@@ -167,16 +214,7 @@ export default function UserManagementPage() {
                   <tr key={u.id}>
                     <td style={{ fontWeight: 600 }}>{u.name}</td>
                     <td>{u.email}</td>
-                    <td>
-                      <select
-                        className="form-select"
-                        style={{ width: 'auto', padding: '4px 8px', fontSize: '0.78rem' }}
-                        value={u.role}
-                        onChange={e => handleRoleChange(u.id, e.target.value as Role)}
-                      >
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                    </td>
+                    <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
                     <td>
                       <span className={`badge ${u.is_blocked ? 'badge-rejected' : 'badge-approved'}`}>
                         {u.is_blocked ? 'Blocked' : 'Active'}
@@ -184,6 +222,7 @@ export default function UserManagementPage() {
                     </td>
                     <td>
                       <div className="btn-group">
+                        <button className="btn btn-sm btn-ghost" onClick={() => setEditUser(u)}>Edit</button>
                         <button
                           className={`btn btn-sm ${u.is_blocked ? 'btn-success' : 'btn-ghost'}`}
                           onClick={() => handleBlock(u.id, !u.is_blocked)}

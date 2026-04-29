@@ -65,6 +65,7 @@ export default function ReviewPage({ title, subtitle, endpoint, actions, emptyIc
               <table>
                 <thead>
                   <tr>
+                    <th>Applicant</th>
                     <th>Date</th>
                     <th>Start</th>
                     <th>End</th>
@@ -78,6 +79,7 @@ export default function ReviewPage({ title, subtitle, endpoint, actions, emptyIc
                 <tbody>
                   {data.map(ot => (
                     <tr key={ot.id}>
+                      <td style={{ fontWeight: 600 }}>{ot.user_name}</td>
                       <td>{ot.date}</td>
                       <td>{ot.start_time}</td>
                       <td>{ot.end_time}</td>

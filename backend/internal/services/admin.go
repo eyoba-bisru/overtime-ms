@@ -1,9 +1,11 @@
 package services
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
+	"github.com/eyoba-bisru/overtime-backend/internal/config"
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 	"github.com/eyoba-bisru/overtime-backend/internal/repository"
 	"github.com/eyoba-bisru/overtime-backend/internal/utils"
@@ -49,4 +51,9 @@ func ResetUserPasswordService(id string) (string, error) {
 
 func DeleteUserService(id string) error {
 	return repository.DeleteUserRepo(id)
+}
+
+func AdminUpdateUserService(id string, email, name string, role models.Role) error {
+	_, err := config.DB.Exec(context.Background(), "UPDATE users SET email = $1, name = $2, role = $3, updated_at = NOW() WHERE id = $4 AND deleted_at IS NULL", email, name, role, id)
+	return err
 }

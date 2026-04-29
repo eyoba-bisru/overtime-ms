@@ -15,6 +15,12 @@ type AdminCreateUserInput struct {
 	Role         models.Role `json:"role" binding:"required"`
 }
 
+type AdminUpdateUserInput struct {
+	Email string      `json:"email" binding:"required,email"`
+	Name  string      `json:"name" binding:"required"`
+	Role  models.Role `json:"role" binding:"required"`
+}
+
 func AdminCreateUserHandler(c *gin.Context) {
 	var input AdminCreateUserInput
 	if err := c.ShouldBind(&input); err != nil {
@@ -48,25 +54,21 @@ func AdminGetUsersHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, models.APIResponse{Success: true, Data: users})
 }
 
-type AdminChangeRoleInput struct {
-	Role models.Role `json:"role" binding:"required"`
-}
-
-func AdminChangeRoleHandler(c *gin.Context) {
+func AdminUpdateUserHandler(c *gin.Context) {
 	id := c.Param("id")
-	var input AdminChangeRoleInput
+	var input AdminUpdateUserInput
 	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	err := services.ChangeUserRoleService(id, input.Role)
+	err := services.AdminUpdateUserService(id, input.Email, input.Name, input.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "User role updated successfully"})
+	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "User updated successfully"})
 }
 
 type AdminBlockUserInput struct {
@@ -117,4 +119,3 @@ func AdminDeleteUserHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "User deleted successfully"})
 }
-

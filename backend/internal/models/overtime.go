@@ -27,6 +27,7 @@ const (
 type Overtime struct {
 	Base
 	UserID    uuid.UUID       `json:"user_id" db:"user_id"`
+	UserName  string          `json:"user_name" db:"user_name"`
 	Date      string          `json:"date" db:"date"`
 	StartTime string          `json:"start_time" db:"start_time"`
 	EndTime   string          `json:"end_time" db:"end_time"`
