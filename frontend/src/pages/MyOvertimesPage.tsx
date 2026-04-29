@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/client';
 import type { Overtime, PaginationMeta } from '../types';
 import Layout from '../components/Layout';
@@ -48,6 +49,7 @@ export default function MyOvertimesPage() {
                     <th>Program</th>
                     <th>Job Done</th>
                     <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -60,6 +62,13 @@ export default function MyOvertimesPage() {
                       <td style={{ textTransform: 'capitalize' }}>{ot.program}</td>
                       <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ot.job_done}</td>
                       <td><span className={`badge badge-${ot.status}`}>{ot.status}</span></td>
+                      <td>
+                        {ot.status === 'pending' && (
+                          <Link to={`/overtime/edit/${ot.id}`} className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)' }}>
+                            ✎ Edit
+                          </Link>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

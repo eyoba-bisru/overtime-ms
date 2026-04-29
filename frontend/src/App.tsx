@@ -7,6 +7,7 @@ import MyOvertimesPage from './pages/MyOvertimesPage';
 import CreateOvertimePage from './pages/CreateOvertimePage';
 import ReviewPage from './pages/ReviewPage';
 import UserManagementPage from './pages/UserManagementPage';
+import EditOvertimePage from './pages/EditOvertimePage';
 import type { Role } from './types';
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: Role[] }) {
@@ -53,6 +54,11 @@ export default function App() {
           <Route path="/overtime/create" element={
             <ProtectedRoute roles={['applicant', 'admin']}>
               <CreateOvertimePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/overtime/edit/:id" element={
+            <ProtectedRoute roles={['applicant', 'admin']}>
+              <EditOvertimePage />
             </ProtectedRoute>
           } />
 
