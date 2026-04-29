@@ -67,6 +67,8 @@ export default function UserManagementPage() {
   };
 
   const handleBlock = async (id: string, isBlocked: boolean) => {
+    const action = isBlocked ? 'block' : 'unblock';
+    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
     try {
       await api.patch(`/admin/users/${id}/block`, { is_blocked: isBlocked });
       showToast({ type: 'info', title: 'Status Changed', message: isBlocked ? 'User has been blocked.' : 'User has been unblocked.' });
@@ -78,6 +80,7 @@ export default function UserManagementPage() {
   };
 
   const handleResetPassword = async (id: string) => {
+    if (!window.confirm('Are you sure you want to reset this user\'s password? They will be given a temporary password.')) return;
     try {
       const res = await api.patch(`/admin/users/${id}/reset-password`);
       showToast({ type: 'success', title: 'Password Reset', message: 'Temporary password generated.' });
