@@ -11,6 +11,12 @@ func UserTable() error {
 	CREATE EXTENSION IF NOT EXISTS pgcrypto;
 	CREATE EXTENSION IF NOT EXISTS citext;
 
+	-- Departments Table
+	CREATE TABLE IF NOT EXISTS departments (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		name TEXT UNIQUE NOT NULL
+	);
+
 	-- Users Table
 	CREATE TABLE IF NOT EXISTS users (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23,6 +29,8 @@ func UserTable() error {
 
 		role TEXT NOT NULL DEFAULT 'applicant'
 			CHECK (role IN ('admin','checker','approver','applicant','finance')),
+		
+		department_id UUID,
 
 		is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
 
@@ -40,9 +48,25 @@ func UserTable() error {
 
 	-- Add columns if they don't exist (Migration support)
 	DO $$ BEGIN
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='department_id') THEN
+			ALTER TABLE users ADD COLUMN department_id UUID;
+		END IF;
+		
+		IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='department') THEN
+			ALTER TABLE users DROP COLUMN department;
+		END IF;
+
 		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='force_password_change') THEN
 			ALTER TABLE users ADD COLUMN force_password_change BOOLEAN NOT NULL DEFAULT FALSE;
 		END IF;
+
+		-- Seed departments if none exist
+		IF NOT EXISTS (SELECT 1 FROM departments) THEN
+			INSERT INTO departments (name) VALUES ('Engineering'), ('HR'), ('Finance'), ('Operations'), ('Sales'), ('Management');
+		END IF;
+
+		-- Link existing users to first dept if needed
+		UPDATE users SET department_id = (SELECT id FROM departments LIMIT 1) WHERE department_id IS NULL;
 	END $$;
 
 	-- Indexes
@@ -108,7 +132,7 @@ func OvertimeTable() error {
 		job_done TEXT NOT NULL CHECK (char_length(job_done) >= 3),
 
 		status overtime_status NOT NULL DEFAULT 'pending',
-
+		department_id UUID NOT NULL,
 		program overtime_program NOT NULL,
 		duration NUMERIC(5,2) NOT NULL DEFAULT 0,
 
@@ -132,6 +156,19 @@ func OvertimeTable() error {
 	CREATE INDEX IF NOT EXISTS idx_overtimes_status ON overtimes(status);
 	CREATE INDEX IF NOT EXISTS idx_overtimes_date ON overtimes(date);
 	CREATE INDEX IF NOT EXISTS idx_overtimes_program ON overtimes(program);
+
+	DO $$ BEGIN
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='overtimes' AND column_name='department_id') THEN
+			ALTER TABLE overtimes ADD COLUMN department_id UUID;
+		END IF;
+
+		IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='overtimes' AND column_name='department') THEN
+			ALTER TABLE overtimes DROP COLUMN department;
+		END IF;
+
+		-- Link existing overtimes to first dept if needed
+		UPDATE overtimes SET department_id = (SELECT id FROM departments LIMIT 1) WHERE department_id IS NULL;
+	END $$;
 	`
 
 	_, err := DB.Exec(context.Background(), query)

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 	"math/rand"
 	"time"
 
@@ -53,7 +54,8 @@ func DeleteUserService(id string) error {
 	return repository.DeleteUserRepo(id)
 }
 
-func AdminUpdateUserService(id string, email, name string, role models.Role) error {
-	_, err := config.DB.Exec(context.Background(), "UPDATE users SET email = $1, name = $2, role = $3, updated_at = NOW() WHERE id = $4 AND deleted_at IS NULL", email, name, role, id)
+func AdminUpdateUserService(id string, email, name string, role models.Role, departmentID string) error {
+	log.Printf("Updating user %s: email=%s, name=%s, role=%s, deptID=%s", id, email, name, role, departmentID)
+	_, err := config.DB.Exec(context.Background(), "UPDATE users SET email = $1, name = $2, role = $3, department_id = $4::UUID, updated_at = NOW() WHERE id = $5::UUID AND deleted_at IS NULL", email, name, role, departmentID, id)
 	return err
 }

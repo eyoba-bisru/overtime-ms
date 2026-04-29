@@ -44,7 +44,9 @@ func CreateOvertimeHandler(c *gin.Context) {
 		return
 	}
 
-	input.UserID = c.MustGet("user").(*models.User).ID
+	user := c.MustGet("user").(*models.User)
+	input.UserID = user.ID
+	input.DepartmentID = user.DepartmentID
 	data, err := services.CreateOvertimeService(input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
@@ -99,7 +101,7 @@ func paginatedOvertimeList(c *gin.Context, role models.Role, status models.Overt
 	user := c.MustGet("user").(*models.User)
 	page, pageSize := parsePagination(c)
 
-	data, total, err := services.GetOvertimesByStatusService(user.ID, role, status, page, pageSize)
+	data, total, err := services.GetOvertimesByStatusService(user.ID, role, status, user.DepartmentID.String(), page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Message: "V2-TEST-ERROR", Error: err.Error()})
 		return
@@ -145,7 +147,7 @@ func CheckOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.CheckOvertimeService(id, user.Role)
+	err = services.CheckOvertimeService(id, user.Role, user.DepartmentID.String())
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -163,7 +165,7 @@ func ApproveOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.ApproveOvertimeService(id, user.Role)
+	err = services.ApproveOvertimeService(id, user.Role, user.DepartmentID.String())
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -181,7 +183,7 @@ func RejectOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.RejectOvertimeService(id, user.Role)
+	err = services.RejectOvertimeService(id, user.Role, user.DepartmentID.String())
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return

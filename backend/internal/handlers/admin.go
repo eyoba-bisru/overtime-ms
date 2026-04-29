@@ -4,8 +4,10 @@ import (
 	"net/http"
 
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
+	"github.com/eyoba-bisru/overtime-backend/internal/repository"
 	"github.com/eyoba-bisru/overtime-backend/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type AdminCreateUserInput struct {
@@ -13,12 +15,14 @@ type AdminCreateUserInput struct {
 	PasswordHash string      `json:"password" binding:"required"`
 	Name         string      `json:"name" binding:"required"`
 	Role         models.Role `json:"role" binding:"required"`
+	DepartmentID string      `json:"department_id" binding:"required"`
 }
 
 type AdminUpdateUserInput struct {
-	Email string      `json:"email" binding:"required,email"`
-	Name  string      `json:"name" binding:"required"`
-	Role  models.Role `json:"role" binding:"required"`
+	Email        string      `json:"email" binding:"required,email"`
+	Name         string      `json:"name" binding:"required"`
+	Role         models.Role `json:"role" binding:"required"`
+	DepartmentID string      `json:"department_id" binding:"required"`
 }
 
 func AdminCreateUserHandler(c *gin.Context) {
@@ -28,11 +32,13 @@ func AdminCreateUserHandler(c *gin.Context) {
 		return
 	}
 
+	deptID, _ := uuid.Parse(input.DepartmentID)
 	user := models.User{
 		Email:        input.Email,
 		PasswordHash: input.PasswordHash,
 		Name:         input.Name,
 		Role:         input.Role,
+		DepartmentID: deptID,
 	}
 
 	data, err := services.CreateUserService(&user)
@@ -54,6 +60,16 @@ func AdminGetUsersHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, models.APIResponse{Success: true, Data: users})
 }
 
+func AdminGetDepartmentsHandler(c *gin.Context) {
+	depts, err := repository.GetDepartmentsRepo()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{Success: true, Data: depts})
+}
+
 func AdminUpdateUserHandler(c *gin.Context) {
 	id := c.Param("id")
 	var input AdminUpdateUserInput
@@ -62,7 +78,7 @@ func AdminUpdateUserHandler(c *gin.Context) {
 		return
 	}
 
-	err := services.AdminUpdateUserService(id, input.Email, input.Name, input.Role)
+	err := services.AdminUpdateUserService(id, input.Email, input.Name, input.Role, input.DepartmentID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return

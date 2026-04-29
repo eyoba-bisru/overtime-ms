@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
-import type { User, Role } from '../types';
 import Layout from '../components/Layout';
 import { useToast } from '../context/ToastContext';
 
 const ROLES: Role[] = ['applicant', 'checker', 'approver', 'finance', 'admin'];
+import type { User, Role, Department } from '../types';
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: '', name: '', password: '', role: 'applicant' as Role });
+  const [createForm, setCreateForm] = useState({ email: '', name: '', password: '', role: 'applicant' as Role, department_id: '' });
   const [createError, setCreateError] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -27,7 +28,21 @@ export default function UserManagementPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/admin/departments');
+      const depts = res.data.data || [];
+      setDepartments(depts);
+      if (depts.length > 0) {
+        setCreateForm(p => ({ ...p, department_id: depts[0].id }));
+      }
+    } catch { /* handled */ }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchDepartments();
+  }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +52,7 @@ export default function UserManagementPage() {
       await api.post('/admin/users', createForm);
       showToast({ type: 'success', title: 'User Created', message: 'The new user has been created successfully.' });
       setShowCreate(false);
-      setCreateForm({ email: '', name: '', password: '', role: 'applicant' });
+      setCreateForm({ email: '', name: '', password: '', role: 'applicant', department_id: departments[0]?.id || '' });
       await fetchUsers();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to create user';
@@ -54,7 +69,8 @@ export default function UserManagementPage() {
       await api.patch(`/admin/users/${editUser.id}`, {
         email: editUser.email,
         name: editUser.name,
-        role: editUser.role
+        role: editUser.role,
+        department_id: editUser.department_id
       });
       showToast({ type: 'success', title: 'User Updated', message: 'User profile has been updated successfully.' });
       setEditUser(null);
@@ -149,6 +165,12 @@ export default function UserManagementPage() {
                     {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Department</label>
+                  <select className="form-select" value={createForm.department_id} onChange={e => setCreateForm(p => ({ ...p, department_id: e.target.value }))}>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button>
@@ -185,6 +207,12 @@ export default function UserManagementPage() {
                     {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Department</label>
+                  <select className="form-select" value={editUser.department_id} onChange={e => setEditUser(p => p ? ({ ...p, department_id: e.target.value }) : null)}>
+                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-ghost" onClick={() => setEditUser(null)}>Cancel</button>
@@ -207,6 +235,7 @@ export default function UserManagementPage() {
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
+                  <th>Department</th>
                   <th>Role</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -217,6 +246,7 @@ export default function UserManagementPage() {
                   <tr key={u.id}>
                     <td style={{ fontWeight: 600 }}>{u.name}</td>
                     <td>{u.email}</td>
+                    <td>{u.department?.name || 'No Department'}</td>
                     <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
                     <td>
                       <span className={`badge ${u.is_blocked ? 'badge-rejected' : 'badge-approved'}`}>

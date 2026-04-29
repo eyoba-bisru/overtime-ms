@@ -106,13 +106,13 @@ func GetOvertimeByIDService(id uuid.UUID) (*models.Overtime, error) {
 	return repository.GetOvertimeByIDRepo(id)
 }
 
-func GetOvertimesByStatusService(userID uuid.UUID, role models.Role, status models.OvertimeStatus, page, pageSize int) ([]models.Overtime, int64, error) {
-	total, err := repository.CountOvertimesRepo(userID, role, status)
+func GetOvertimesByStatusService(userID uuid.UUID, role models.Role, status models.OvertimeStatus, departmentID string, page, pageSize int) ([]models.Overtime, int64, error) {
+	total, err := repository.CountOvertimesRepo(userID, role, status, departmentID)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	overtimes, err := repository.GetOvertimesRepo(userID, role, status, page, pageSize)
+	overtimes, err := repository.GetOvertimesRepo(userID, role, status, departmentID, page, pageSize)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -120,13 +120,17 @@ func GetOvertimesByStatusService(userID uuid.UUID, role models.Role, status mode
 	return overtimes, total, nil
 }
 
-func CheckOvertimeService(id uuid.UUID, userRole models.Role) error {
+func CheckOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
 	}
 
 	if userRole != models.Checker && userRole != models.Admin {
+		return models.ErrUnauthorized
+	}
+
+	if userRole == models.Checker && overtime.DepartmentID.String() != userDeptID {
 		return models.ErrUnauthorized
 	}
 
@@ -137,13 +141,17 @@ func CheckOvertimeService(id uuid.UUID, userRole models.Role) error {
 	return repository.UpdateOvertimeStatusRepo(id, models.OvertimeChecked)
 }
 
-func ApproveOvertimeService(id uuid.UUID, userRole models.Role) error {
+func ApproveOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
 	}
 
 	if userRole != models.Approver && userRole != models.Admin {
+		return models.ErrUnauthorized
+	}
+
+	if userRole == models.Approver && overtime.DepartmentID.String() != userDeptID {
 		return models.ErrUnauthorized
 	}
 
@@ -154,10 +162,18 @@ func ApproveOvertimeService(id uuid.UUID, userRole models.Role) error {
 	return repository.UpdateOvertimeStatusRepo(id, models.OvertimeApproved)
 }
 
-func RejectOvertimeService(id uuid.UUID, userRole models.Role) error {
+func RejectOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
+	}
+
+	if userRole != models.Admin && overtime.DepartmentID.String() != userDeptID && userRole != models.Finance {
+		// Finance can reject from any dept? Usually they don't reject but let's be safe.
+		// Approvers and Checkers MUST be in same dept.
+		if userRole == models.Checker || userRole == models.Approver {
+			return models.ErrUnauthorized
+		}
 	}
 
 	if overtime.Status == models.OvertimeApproved || overtime.Status == models.OvertimeRejected {

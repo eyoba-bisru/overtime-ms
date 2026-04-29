@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Role string
@@ -20,6 +22,8 @@ type User struct {
 	Name            string     `json:"name" db:"name"`
 	PasswordHash    string     `json:"-" db:"password_hash"`
 	Role                Role       `json:"role" db:"role"`
+	DepartmentID        uuid.UUID  `json:"department_id" db:"department_id"`
+	Department          *Department `json:"department,omitempty"`
 	IsBlocked           bool       `json:"is_blocked" db:"is_blocked"`
 	EmailVerified       bool       `json:"email_verified" db:"email_verified"`
 	EmailVerifiedAt     *time.Time `json:"email_verified_at,omitempty" db:"email_verified_at"`

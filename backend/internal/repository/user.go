@@ -10,7 +10,7 @@ import (
 func CreateUserRepo(user *models.User) (string, error) {
 	var id string
 
-	err := config.DB.QueryRow(context.Background(), "INSERT INTO users (id, email, name, password_hash, role, force_password_change, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", user.ID, user.Email, user.Name, user.PasswordHash, user.Role, user.ForcePasswordChange, user.CreatedAt, user.UpdatedAt).Scan(&id)
+	err := config.DB.QueryRow(context.Background(), "INSERT INTO users (id, email, name, password_hash, role, department_id, force_password_change, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id", user.ID, user.Email, user.Name, user.PasswordHash, user.Role, user.DepartmentID, user.ForcePasswordChange, user.CreatedAt, user.UpdatedAt).Scan(&id)
 	if err != nil {
 		return "", err
 	}
@@ -19,17 +19,22 @@ func CreateUserRepo(user *models.User) (string, error) {
 }
 
 func GetUserByEmailRepo(email string) (*models.User, error) {
-	row := config.DB.QueryRow(context.Background(), "SELECT id, email, name, password_hash, role, is_blocked, force_password_change, created_at, updated_at FROM users WHERE email = $1 AND deleted_at IS NULL", email)
-	user := &models.User{}
-	err := row.Scan(&user.ID, &user.Email, &user.Name, &user.PasswordHash, &user.Role, &user.IsBlocked, &user.ForcePasswordChange, &user.CreatedAt, &user.UpdatedAt)
+	row := config.DB.QueryRow(context.Background(), `
+		SELECT u.id, u.email, u.name, u.password_hash, u.role, u.department_id, u.is_blocked, u.force_password_change, u.created_at, u.updated_at, d.name as department_name
+		FROM users u
+		LEFT JOIN departments d ON u.department_id = d.id
+		WHERE u.email = $1 AND u.deleted_at IS NULL`, email)
+	user := &models.User{Department: &models.Department{}}
+	err := row.Scan(&user.ID, &user.Email, &user.Name, &user.PasswordHash, &user.Role, &user.DepartmentID, &user.IsBlocked, &user.ForcePasswordChange, &user.CreatedAt, &user.UpdatedAt, &user.Department.Name)
 	if err != nil {
 		return nil, err
 	}
+	user.Department.ID = user.DepartmentID
 	return user, nil
 }
 
 func UpdateUserRepo(user *models.User) (*models.User, error) {
-	_, err := config.DB.Exec(context.Background(), "UPDATE users SET email = $1, name = $2, password_hash = $3, role = $4, last_login_at = $5, is_blocked = $6, force_password_change = $7, updated_at = $8 WHERE id = $9", user.Email, user.Name, user.PasswordHash, user.Role, user.LastLoginAt, user.IsBlocked, user.ForcePasswordChange, user.UpdatedAt, user.ID)
+	_, err := config.DB.Exec(context.Background(), "UPDATE users SET email = $1, name = $2, password_hash = $3, role = $4, department_id = $5, last_login_at = $6, is_blocked = $7, force_password_change = $8, updated_at = $9 WHERE id = $10", user.Email, user.Name, user.PasswordHash, user.Role, user.DepartmentID, user.LastLoginAt, user.IsBlocked, user.ForcePasswordChange, user.UpdatedAt, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +42,12 @@ func UpdateUserRepo(user *models.User) (*models.User, error) {
 }
 
 func GetUsersRepo() ([]models.User, error) {
-	rows, err := config.DB.Query(context.Background(), "SELECT id, email, name, role, is_blocked, force_password_change, created_at, updated_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC")
+	rows, err := config.DB.Query(context.Background(), `
+		SELECT u.id, u.email, u.name, u.role, u.department_id, u.is_blocked, u.force_password_change, u.created_at, u.updated_at, d.name as department_name
+		FROM users u
+		LEFT JOIN departments d ON u.department_id = d.id
+		WHERE u.deleted_at IS NULL
+		ORDER BY u.created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -45,11 +55,12 @@ func GetUsersRepo() ([]models.User, error) {
 
 	var users []models.User
 	for rows.Next() {
-		var user models.User
-		err := rows.Scan(&user.ID, &user.Email, &user.Name, &user.Role, &user.IsBlocked, &user.ForcePasswordChange, &user.CreatedAt, &user.UpdatedAt)
+		user := models.User{Department: &models.Department{}}
+		err := rows.Scan(&user.ID, &user.Email, &user.Name, &user.Role, &user.DepartmentID, &user.IsBlocked, &user.ForcePasswordChange, &user.CreatedAt, &user.UpdatedAt, &user.Department.Name)
 		if err != nil {
 			return nil, err
 		}
+		user.Department.ID = user.DepartmentID
 		users = append(users, user)
 	}
 	return users, nil

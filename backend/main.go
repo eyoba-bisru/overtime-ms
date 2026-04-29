@@ -47,6 +47,7 @@ func main() {
 	admin.Use(middleware.AuthMiddleware(), middleware.RBACMiddleware(models.Admin))
 	{
 		admin.POST("/users", handlers.AdminCreateUserHandler)
+		admin.GET("/departments", handlers.AdminGetDepartmentsHandler)
 		admin.GET("/users", handlers.AdminGetUsersHandler)
 		admin.PATCH("/users/:id", handlers.AdminUpdateUserHandler)
 		admin.PATCH("/users/:id/block", handlers.AdminBlockUserHandler)

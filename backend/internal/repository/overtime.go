@@ -12,7 +12,7 @@ import (
 func CreateOvertimeRepo(overtime *models.Overtime) (uuid.UUID, error) {
 	var data uuid.UUID
 
-	err := config.DB.QueryRow(context.Background(), "INSERT INTO overtimes (user_id, date, start_time, end_time, job_done, status, program, duration, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id", overtime.UserID, overtime.Date, overtime.StartTime, overtime.EndTime, overtime.JobDone, overtime.Status, overtime.Program, overtime.Duration, overtime.CreatedAt, overtime.UpdatedAt).Scan(&data)
+	err := config.DB.QueryRow(context.Background(), "INSERT INTO overtimes (user_id, date, start_time, end_time, job_done, status, program, department_id, duration, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id", overtime.UserID, overtime.Date, overtime.StartTime, overtime.EndTime, overtime.JobDone, overtime.Status, overtime.Program, overtime.DepartmentID, overtime.Duration, overtime.CreatedAt, overtime.UpdatedAt).Scan(&data)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -21,14 +21,19 @@ func CreateOvertimeRepo(overtime *models.Overtime) (uuid.UUID, error) {
 
 func GetOvertimeByIDRepo(id uuid.UUID) (*models.Overtime, error) {
 	var overtime models.Overtime
-	err := config.DB.QueryRow(context.Background(), "SELECT o.id, o.user_id, u.name as user_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at FROM overtimes o JOIN users u ON o.user_id = u.id WHERE o.id = $1 AND o.deleted_at IS NULL", id).Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
+	err := config.DB.QueryRow(context.Background(), `
+		SELECT o.id, o.user_id, u.name as user_name, o.department_id, d.name as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
+		FROM overtimes o
+		JOIN users u ON o.user_id = u.id
+		LEFT JOIN departments d ON o.department_id = d.id
+		WHERE o.id = $1 AND o.deleted_at IS NULL`, id).Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.DepartmentID, &overtime.DepartmentName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return &overtime, nil
 }
 
-func buildOvertimeQuery(role models.Role, status models.OvertimeStatus, userID uuid.UUID) (string, string, []interface{}) {
+func buildOvertimeQuery(role models.Role, status models.OvertimeStatus, userID uuid.UUID, departmentID string) (string, string, []interface{}) {
 	var where string
 	var args []interface{}
 	argIdx := 1
@@ -38,7 +43,11 @@ func buildOvertimeQuery(role models.Role, status models.OvertimeStatus, userID u
 		where = fmt.Sprintf("o.user_id = $%d AND o.deleted_at IS NULL", argIdx)
 		args = append(args, userID)
 		argIdx++
-	case models.Checker, models.Approver, models.Finance:
+	case models.Checker, models.Approver:
+		where = fmt.Sprintf("o.status = $%d AND o.department_id = $%d AND o.deleted_at IS NULL", argIdx, argIdx+1)
+		args = append(args, status, departmentID)
+		argIdx += 2
+	case models.Finance:
 		where = fmt.Sprintf("o.status = $%d AND o.deleted_at IS NULL", argIdx)
 		args = append(args, status)
 		argIdx++
@@ -47,13 +56,19 @@ func buildOvertimeQuery(role models.Role, status models.OvertimeStatus, userID u
 	}
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM overtimes o WHERE %s", where)
-	selectQuery := fmt.Sprintf("SELECT o.id, o.user_id, u.name as user_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at FROM overtimes o JOIN users u ON o.user_id = u.id WHERE %s ORDER BY o.created_at DESC", where)
+	selectQuery := fmt.Sprintf(`
+		SELECT o.id, o.user_id, u.name as user_name, o.department_id, d.name as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
+		FROM overtimes o
+		JOIN users u ON o.user_id = u.id
+		LEFT JOIN departments d ON o.department_id = d.id
+		WHERE %s
+		ORDER BY o.created_at DESC`, where)
 
 	return selectQuery, countQuery, args
 }
 
-func CountOvertimesRepo(userID uuid.UUID, role models.Role, status models.OvertimeStatus) (int64, error) {
-	_, countQuery, args := buildOvertimeQuery(role, status, userID)
+func CountOvertimesRepo(userID uuid.UUID, role models.Role, status models.OvertimeStatus, departmentID string) (int64, error) {
+	_, countQuery, args := buildOvertimeQuery(role, status, userID, departmentID)
 
 	var total int64
 	err := config.DB.QueryRow(context.Background(), countQuery, args...).Scan(&total)
@@ -63,8 +78,8 @@ func CountOvertimesRepo(userID uuid.UUID, role models.Role, status models.Overti
 	return total, nil
 }
 
-func GetOvertimesRepo(userID uuid.UUID, role models.Role, status models.OvertimeStatus, page, pageSize int) ([]models.Overtime, error) {
-	selectQuery, _, args := buildOvertimeQuery(role, status, userID)
+func GetOvertimesRepo(userID uuid.UUID, role models.Role, status models.OvertimeStatus, departmentID string, page, pageSize int) ([]models.Overtime, error) {
+	selectQuery, _, args := buildOvertimeQuery(role, status, userID, departmentID)
 
 	offset := (page - 1) * pageSize
 	argIdx := len(args) + 1
@@ -80,7 +95,7 @@ func GetOvertimesRepo(userID uuid.UUID, role models.Role, status models.Overtime
 	var overtimes []models.Overtime
 	for rows.Next() {
 		var overtime models.Overtime
-		err := rows.Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
+		err := rows.Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.DepartmentID, &overtime.DepartmentName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
