@@ -62,11 +62,14 @@ func UserTable() error {
 
 		-- Seed departments if none exist
 		IF NOT EXISTS (SELECT 1 FROM departments) THEN
-			INSERT INTO departments (name) VALUES ('Engineering'), ('HR'), ('Finance'), ('Operations'), ('Sales'), ('Management');
+			INSERT INTO departments (name) VALUES 
+			('Implementation'),
+			('Application & Systems'),
+			('Finance');
 		END IF;
 
 		-- Link existing users to first dept if needed
-		UPDATE users SET department_id = (SELECT id FROM departments LIMIT 1) WHERE department_id IS NULL;
+		UPDATE users SET department_id = 	(SELECT id FROM departments LIMIT 1) WHERE department_id IS NULL;
 	END $$;
 
 	-- Indexes

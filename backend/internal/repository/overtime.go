@@ -22,7 +22,7 @@ func CreateOvertimeRepo(overtime *models.Overtime) (uuid.UUID, error) {
 func GetOvertimeByIDRepo(id uuid.UUID) (*models.Overtime, error) {
 	var overtime models.Overtime
 	err := config.DB.QueryRow(context.Background(), `
-		SELECT o.id, o.user_id, u.name as user_name, o.department_id, d.name as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
+		SELECT o.id, o.user_id, u.name as user_name, o.department_id, COALESCE(d.name, 'Unknown') as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
 		FROM overtimes o
 		JOIN users u ON o.user_id = u.id
 		LEFT JOIN departments d ON o.department_id = d.id
@@ -57,7 +57,7 @@ func buildOvertimeQuery(role models.Role, status models.OvertimeStatus, userID u
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM overtimes o WHERE %s", where)
 	selectQuery := fmt.Sprintf(`
-		SELECT o.id, o.user_id, u.name as user_name, o.department_id, d.name as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
+		SELECT o.id, o.user_id, u.name as user_name, o.department_id, COALESCE(d.name, 'Unknown') as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
 		FROM overtimes o
 		JOIN users u ON o.user_id = u.id
 		LEFT JOIN departments d ON o.department_id = d.id

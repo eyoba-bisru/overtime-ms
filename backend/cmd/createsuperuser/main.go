@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -21,6 +22,22 @@ func main() {
 	// 1. Initialize DB
 	config.DBConnect()
 	defer config.CloseDB()
+
+	// Ensure migrations are run so tables exist
+	if err := config.Migrate(); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// 2. Get Implementation Department ID
+	var deptID uuid.UUID
+	err := config.DB.QueryRow(context.Background(), "SELECT id FROM departments WHERE name = 'Implementation'").Scan(&deptID)
+	if err != nil {
+		// Fallback to any department if Implementation doesn't exist (though it should now)
+		err = config.DB.QueryRow(context.Background(), "SELECT id FROM departments LIMIT 1").Scan(&deptID)
+		if err != nil {
+			log.Fatal("No departments found. Please ensure departments are seeded.")
+		}
+	}
 
 	reader := bufio.NewReader(os.Stdin)
 
@@ -60,6 +77,7 @@ func main() {
 		Email:               email,
 		PasswordHash:        hashedPassword,
 		Role:                models.Admin,
+		DepartmentID:        deptID,
 		ForcePasswordChange: false,
 	}
 

@@ -81,7 +81,7 @@ export default function ReviewPage({ title, subtitle, endpoint, actions, emptyIc
                   {data.map(ot => (
                     <tr key={ot.id}>
                       <td style={{ fontWeight: 600 }}>{ot.user_name}</td>
-                      <td>{ot.department}</td>
+                      <td>{ot.department_name}</td>
                       <td>{ot.date}</td>
                       <td>{ot.start_time}</td>
                       <td>{ot.end_time}</td>

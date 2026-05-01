@@ -20,7 +20,7 @@ func CreateUserRepo(user *models.User) (string, error) {
 
 func GetUserByEmailRepo(email string) (*models.User, error) {
 	row := config.DB.QueryRow(context.Background(), `
-		SELECT u.id, u.email, u.name, u.password_hash, u.role, u.department_id, u.is_blocked, u.force_password_change, u.created_at, u.updated_at, d.name as department_name
+		SELECT u.id, u.email, u.name, u.password_hash, u.role, u.department_id, u.is_blocked, u.force_password_change, u.created_at, u.updated_at, COALESCE(d.name, 'Unknown') as department_name
 		FROM users u
 		LEFT JOIN departments d ON u.department_id = d.id
 		WHERE u.email = $1 AND u.deleted_at IS NULL`, email)
@@ -43,7 +43,7 @@ func UpdateUserRepo(user *models.User) (*models.User, error) {
 
 func GetUsersRepo() ([]models.User, error) {
 	rows, err := config.DB.Query(context.Background(), `
-		SELECT u.id, u.email, u.name, u.role, u.department_id, u.is_blocked, u.force_password_change, u.created_at, u.updated_at, d.name as department_name
+		SELECT u.id, u.email, u.name, u.role, u.department_id, u.is_blocked, u.force_password_change, u.created_at, u.updated_at, COALESCE(d.name, 'Unknown') as department_name
 		FROM users u
 		LEFT JOIN departments d ON u.department_id = d.id
 		WHERE u.deleted_at IS NULL

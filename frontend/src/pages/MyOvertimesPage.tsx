@@ -65,7 +65,7 @@ export default function MyOvertimesPage() {
                 <tbody>
                   {data.map(ot => (
                     <tr key={ot.id}>
-                      <td>{ot.department}</td>
+                      <td>{ot.department_name}</td>
                       <td>{ot.date}</td>
                       <td>{ot.start_time}</td>
                       <td>{ot.end_time}</td>
