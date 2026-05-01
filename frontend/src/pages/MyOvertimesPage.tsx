@@ -3,12 +3,30 @@ import { Link } from 'react-router-dom';
 import api from '../api/client';
 import type { Overtime, PaginationMeta } from '../types';
 import Layout from '../components/Layout';
+import ConfirmModal from '../components/ConfirmModal';
+
+function SkeletonTable({ cols }: { cols: number }) {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div className="skeleton-row" key={i}>
+          {Array.from({ length: cols }).map((_, j) => (
+            <div key={j} className={`skeleton skeleton-cell ${j === 0 ? 'skeleton-cell-md' : ''}`} />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
 
 export default function MyOvertimesPage() {
   const [data, setData] = useState<Overtime[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -19,17 +37,26 @@ export default function MyOvertimesPage() {
     setLoading(false);
   }, [page]);
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this request?')) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      await api.delete(`/overtime/${id}`);
+      await api.delete(`/overtime/${deleteTarget}`);
+      setDeleteTarget(null);
       fetchData();
     } catch { /* handled by interceptor */ }
+    setDeleteLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Compute stats
+  const totalCount = meta?.total ?? data.length;
+  const pendingCount = data.filter(o => o.status === 'pending').length;
+  const approvedCount = data.filter(o => o.status === 'approved').length;
+  const rejectedCount = data.filter(o => o.status === 'rejected').length;
 
   return (
     <Layout>
@@ -37,9 +64,33 @@ export default function MyOvertimesPage() {
         <h1 className="page-title">My Overtime Requests</h1>
         <p className="page-subtitle">View and track your submitted overtime requests</p>
       </div>
+
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon">📋</div>
+          <div className="stat-value">{totalCount}</div>
+          <div className="stat-label">Total Requests</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">⏳</div>
+          <div className="stat-value">{pendingCount}</div>
+          <div className="stat-label">Pending</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">✅</div>
+          <div className="stat-value">{approvedCount}</div>
+          <div className="stat-label">Approved</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">❌</div>
+          <div className="stat-value">{rejectedCount}</div>
+          <div className="stat-label">Rejected</div>
+        </div>
+      </div>
+
       <div className="card">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40 }}><span className="spinner" /></div>
+          <SkeletonTable cols={9} />
         ) : data.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">📋</div>
@@ -70,19 +121,19 @@ export default function MyOvertimesPage() {
                       <td>{ot.start_time}</td>
                       <td>{ot.end_time}</td>
                       <td>{ot.duration.toFixed(1)}h</td>
-                      <td style={{ textTransform: 'capitalize' }}>{ot.program}</td>
-                      <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ot.job_done}</td>
+                      <td className="text-capitalize">{ot.program}</td>
+                      <td className="text-ellipsis">{ot.job_done}</td>
                       <td><span className={`badge badge-${ot.status}`}>{ot.status}</span></td>
                       <td>
                         {ot.status === 'pending' && (
-                          <Link to={`/overtime/edit/${ot.id}`} className="btn btn-ghost btn-sm" style={{ color: 'var(--primary)' }}>
-                            ✎ Edit
-                          </Link>
-                        )}
-                        {ot.status === 'pending' && (
-                          <button onClick={() => handleDelete(ot.id)} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
-                            🗑 Delete
-                          </button>
+                          <div className="btn-group">
+                            <Link to={`/overtime/edit/${ot.id}`} className="btn btn-ghost btn-sm">
+                              ✎ Edit
+                            </Link>
+                            <button onClick={() => setDeleteTarget(ot.id)} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
+                              🗑 Delete
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -104,6 +155,18 @@ export default function MyOvertimesPage() {
           </>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Overtime Request"
+          message="Are you sure you want to delete this request? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          loading={deleteLoading}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </Layout>
   );
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 	"github.com/eyoba-bisru/overtime-backend/internal/services"
@@ -32,7 +33,10 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("token", token, 3600, "/", os.Getenv("HOST"), false, true)
+	host := os.Getenv("HOST")
+	isSecure := !strings.Contains(host, "localhost") && !strings.Contains(host, "127.0.0.1")
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie("token", token, 86400, "/", host, isSecure, true)
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
 		Message: "Login successful",

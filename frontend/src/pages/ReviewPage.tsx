@@ -12,6 +12,20 @@ interface ReviewPageProps {
   emptyIcon: string;
 }
 
+function SkeletonTable({ cols }: { cols: number }) {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div className="skeleton-row" key={i}>
+          {Array.from({ length: cols }).map((_, j) => (
+            <div key={j} className={`skeleton skeleton-cell ${j === 0 ? 'skeleton-cell-md' : ''}`} />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
 export default function ReviewPage({ title, subtitle, endpoint, actions, emptyIcon }: ReviewPageProps) {
   const [data, setData] = useState<Overtime[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
@@ -53,7 +67,7 @@ export default function ReviewPage({ title, subtitle, endpoint, actions, emptyIc
       </div>
       <div className="card">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40 }}><span className="spinner" /></div>
+          <SkeletonTable cols={actions.length > 0 ? 10 : 9} />
         ) : data.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">{emptyIcon}</div>
@@ -80,14 +94,14 @@ export default function ReviewPage({ title, subtitle, endpoint, actions, emptyIc
                 <tbody>
                   {data.map(ot => (
                     <tr key={ot.id}>
-                      <td style={{ fontWeight: 600 }}>{ot.user_name}</td>
+                      <td className="font-semibold">{ot.user_name}</td>
                       <td>{ot.department_name}</td>
                       <td>{ot.date}</td>
                       <td>{ot.start_time}</td>
                       <td>{ot.end_time}</td>
                       <td>{ot.duration.toFixed(1)}h</td>
-                      <td style={{ textTransform: 'capitalize' }}>{ot.program}</td>
-                      <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ot.job_done}</td>
+                      <td className="text-capitalize">{ot.program}</td>
+                      <td className="text-ellipsis">{ot.job_done}</td>
                       <td><span className={`badge badge-${ot.status}`}>{ot.status}</span></td>
                       {actions.length > 0 && (
                         <td>

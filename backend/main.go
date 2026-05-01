@@ -3,6 +3,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"strings"
 
 	"github.com/eyoba-bisru/overtime-backend/internal/config"
 	"github.com/eyoba-bisru/overtime-backend/internal/handlers"
@@ -10,7 +12,6 @@ import (
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	_ "github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -28,7 +29,17 @@ func main() {
 
 	r := gin.Default()
 
-	r.Use(cors.Default())
+	// CORS configuration
+	allowedOrigins := os.Getenv("CORS_ORIGIN")
+	if allowedOrigins == "" {
+		allowedOrigins = "http://localhost:5173"
+	}
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     strings.Split(allowedOrigins, ","),
+		AllowMethods:     []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
 	base := r.Group("/api/v1")
 

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"os"
+	"time"
 
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 	"github.com/golang-jwt/jwt/v5"
@@ -16,6 +17,8 @@ func GenerateJWT(user *models.User) (string, error) {
 		"email":   user.Email,
 		"role":    user.Role,
 		"dept_id": user.DepartmentID,
+		"iat":     time.Now().Unix(),
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	})
 
 	jwtSecret := os.Getenv("JWT_SECRET")

@@ -7,16 +7,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
 
 var DB *pgxpool.Pool
 
 func DBConnect() {
-	err := LoadEnv()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 
 	DB_HOST := os.Getenv("DB_HOST")
 	DB_NAME := os.Getenv("DB_NAME")

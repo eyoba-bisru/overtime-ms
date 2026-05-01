@@ -1,8 +1,8 @@
 package services
 
 import (
-	"math/rand"
-	"time"
+	"crypto/rand"
+	"math/big"
 
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 	"github.com/eyoba-bisru/overtime-backend/internal/repository"
@@ -13,10 +13,15 @@ import (
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
 
 func generateRandomPassword(length int) string {
-	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			// Fallback should never happen with crypto/rand
+			b[i] = charset[0]
+			continue
+		}
+		b[i] = charset[n.Int64()]
 	}
 	return string(b)
 }

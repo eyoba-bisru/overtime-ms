@@ -38,8 +38,7 @@ export default function EditOvertimePage() {
           job_done: ot.job_done,
           program: ot.program,
         });
-      } catch (err) {
-        // Interceptor handles error toast
+      } catch {
         navigate('/overtime/my');
       } finally {
         setLoading(false);
@@ -59,7 +58,7 @@ export default function EditOvertimePage() {
       await api.patch(`/overtime/${id}`, form);
       showToast({ type: 'success', title: 'Success', message: 'Overtime request updated successfully' });
       navigate('/overtime/my');
-    } catch (err: unknown) {
+    } catch {
       // Interceptor handles toast
     } finally {
       setSubmitting(false);
@@ -74,7 +73,7 @@ export default function EditOvertimePage() {
         <h1 className="page-title">Edit Overtime Request</h1>
         <p className="page-subtitle">Update your pending overtime work request</p>
       </div>
-      <div className="card" style={{ maxWidth: 640 }}>
+      <div className="card max-w-form">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Date</label>

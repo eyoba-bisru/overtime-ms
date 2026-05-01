@@ -41,7 +41,11 @@ func AdminCreateUserHandler(c *gin.Context) {
 		return
 	}
 
-	deptID, _ := uuid.Parse(input.DepartmentID)
+	deptID, err := uuid.Parse(input.DepartmentID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: "Invalid department ID"})
+		return
+	}
 	user := models.User{
 		Email:        input.Email,
 		PasswordHash: input.PasswordHash,
@@ -179,8 +183,12 @@ func AdminUpdateDepartmentHandler(c *gin.Context) {
 		return
 	}
 
-	parsedID, _ := uuid.Parse(id)
-	err := repository.UpdateDepartmentRepo(parsedID, input.Name, actor.ID)
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: "Invalid department ID"})
+		return
+	}
+	err = repository.UpdateDepartmentRepo(parsedID, input.Name, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -192,9 +200,13 @@ func AdminUpdateDepartmentHandler(c *gin.Context) {
 func AdminDeleteDepartmentHandler(c *gin.Context) {
 	actor := GetCurrentUser(c)
 	id := c.Param("id")
-	parsedID, _ := uuid.Parse(id)
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: "Invalid department ID"})
+		return
+	}
 
-	err := repository.DeleteDepartmentRepo(parsedID, actor.ID)
+	err = repository.DeleteDepartmentRepo(parsedID, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return

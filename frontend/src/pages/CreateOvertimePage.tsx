@@ -9,7 +9,6 @@ export default function CreateOvertimePage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [form, setForm] = useState({
     date: '',
     start_time: '',
@@ -24,7 +23,6 @@ export default function CreateOvertimePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
     try {
       await api.post('/overtime', form);
@@ -44,7 +42,7 @@ export default function CreateOvertimePage() {
         <h1 className="page-title">New Overtime Request</h1>
         <p className="page-subtitle">Submit a new overtime work request</p>
       </div>
-      <div className="card" style={{ maxWidth: 640 }}>
+      <div className="card max-w-form">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Date</label>

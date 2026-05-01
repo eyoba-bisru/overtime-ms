@@ -1,23 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../api/client';
 import Layout from '../components/Layout';
 import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
+import type { User, Role, Department } from '../types';
 
 const ROLES: Role[] = ['applicant', 'checker', 'approver', 'finance', 'admin'];
-import type { User, Role, Department } from '../types';
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({ email: '', name: '', password: '', role: 'applicant' as Role, department_id: '' });
-  const [createError, setCreateError] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState<{ userId: string; password: string } | null>(null);
   const { showToast } = useToast();
+
+  // Confirm modal state
+  const [confirm, setConfirm] = useState<{
+    title: string; message: string; variant: 'danger' | 'warning'; confirmLabel: string;
+    action: () => Promise<void>;
+  } | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -44,9 +52,18 @@ export default function UserManagementPage() {
     fetchDepartments();
   }, []);
 
+  const filteredUsers = useMemo(() => {
+    if (!search.trim()) return users;
+    const q = search.toLowerCase();
+    return users.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.role.toLowerCase().includes(q)
+    );
+  }, [users, search]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreateError('');
     setCreateLoading(true);
     try {
       await api.post('/admin/users', createForm);
@@ -82,46 +99,63 @@ export default function UserManagementPage() {
     setEditLoading(false);
   };
 
-  const handleBlock = async (id: string, isBlocked: boolean) => {
+  const handleConfirmAction = async () => {
+    if (!confirm) return;
+    setConfirmLoading(true);
+    try {
+      await confirm.action();
+    } finally {
+      setConfirmLoading(false);
+      setConfirm(null);
+    }
+  };
+
+  const requestBlock = (id: string, isBlocked: boolean) => {
     const action = isBlocked ? 'block' : 'unblock';
-    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
-    try {
-      await api.patch(`/admin/users/${id}/block`, { is_blocked: isBlocked });
-      showToast({ type: 'info', title: 'Status Changed', message: isBlocked ? 'User has been blocked.' : 'User has been unblocked.' });
-      await fetchUsers();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to change status';
-      showToast({ type: 'error', title: 'Error', message: msg });
-    }
+    setConfirm({
+      title: `${isBlocked ? 'Block' : 'Unblock'} User`,
+      message: `Are you sure you want to ${action} this user?`,
+      variant: 'warning',
+      confirmLabel: isBlocked ? 'Block' : 'Unblock',
+      action: async () => {
+        await api.patch(`/admin/users/${id}/block`, { is_blocked: isBlocked });
+        showToast({ type: 'info', title: 'Status Changed', message: isBlocked ? 'User has been blocked.' : 'User has been unblocked.' });
+        await fetchUsers();
+      },
+    });
   };
 
-  const handleResetPassword = async (id: string) => {
-    if (!window.confirm('Are you sure you want to reset this user\'s password? They will be given a temporary password.')) return;
-    try {
-      const res = await api.patch(`/admin/users/${id}/reset-password`);
-      showToast({ type: 'success', title: 'Password Reset', message: 'Temporary password generated.' });
-      setTempPassword({ userId: id, password: res.data.data?.temporary_password || '' });
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to reset password';
-      showToast({ type: 'error', title: 'Error', message: msg });
-    }
+  const requestResetPassword = (id: string) => {
+    setConfirm({
+      title: 'Reset Password',
+      message: 'Are you sure you want to reset this user\'s password? They will be given a temporary password.',
+      variant: 'warning',
+      confirmLabel: 'Reset Password',
+      action: async () => {
+        const res = await api.patch(`/admin/users/${id}/reset-password`);
+        showToast({ type: 'success', title: 'Password Reset', message: 'Temporary password generated.' });
+        setTempPassword({ userId: id, password: res.data.data?.temporary_password || '' });
+      },
+    });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-    try {
-      await api.delete(`/admin/users/${id}`);
-      showToast({ type: 'warning', title: 'User Deleted', message: 'User account has been removed.' });
-      await fetchUsers();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to delete user';
-      showToast({ type: 'error', title: 'Deletion Failed', message: msg });
-    }
+  const requestDelete = (id: string) => {
+    setConfirm({
+      title: 'Delete User',
+      message: 'Are you sure you want to permanently delete this user? This action cannot be undone.',
+      variant: 'danger',
+      confirmLabel: 'Delete',
+      action: async () => {
+        await api.delete(`/admin/users/${id}`);
+        showToast({ type: 'warning', title: 'User Deleted', message: 'User account has been removed.' });
+        await fetchUsers();
+      },
+    });
   };
 
   return (
     <Layout>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="page-header flex-between">
         <div>
           <h1 className="page-title">User Management</h1>
           <p className="page-subtitle">Manage system users and their roles</p>
@@ -225,9 +259,22 @@ export default function UserManagementPage() {
         </div>
       )}
 
+      {/* Search bar */}
+      <div style={{ marginBottom: 16 }}>
+        <div className="search-input-wrap">
+          <span className="search-input-icon">🔍</span>
+          <input
+            className="form-input"
+            placeholder="Search users by name, email, or role..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
       <div className="card">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40 }}><span className="spinner" /></div>
+          <div className="p-loading"><span className="spinner" /></div>
         ) : (
           <div className="table-container">
             <table>
@@ -242,12 +289,12 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
+                {filteredUsers.map(u => (
                   <tr key={u.id}>
-                    <td style={{ fontWeight: 600 }}>{u.name}</td>
+                    <td className="font-semibold">{u.name}</td>
                     <td>{u.email}</td>
                     <td>{u.department?.name || 'No Department'}</td>
-                    <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
+                    <td className="text-capitalize">{u.role}</td>
                     <td>
                       <span className={`badge ${u.is_blocked ? 'badge-rejected' : 'badge-approved'}`}>
                         {u.is_blocked ? 'Blocked' : 'Active'}
@@ -258,21 +305,41 @@ export default function UserManagementPage() {
                         <button className="btn btn-sm btn-ghost" onClick={() => setEditUser(u)}>Edit</button>
                         <button
                           className={`btn btn-sm ${u.is_blocked ? 'btn-success' : 'btn-ghost'}`}
-                          onClick={() => handleBlock(u.id, !u.is_blocked)}
+                          onClick={() => requestBlock(u.id, !u.is_blocked)}
                         >
                           {u.is_blocked ? 'Unblock' : 'Block'}
                         </button>
-                        <button className="btn btn-sm btn-ghost" onClick={() => handleResetPassword(u.id)}>Reset PW</button>
-                        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(u.id)}>Delete</button>
+                        <button className="btn btn-sm btn-ghost" onClick={() => requestResetPassword(u.id)}>Reset PW</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => requestDelete(u.id)}>Delete</button>
                       </div>
                     </td>
                   </tr>
                 ))}
+                {filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-loading" style={{ color: 'var(--text-muted)' }}>
+                      {search ? 'No users match your search.' : 'No users found.'}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Confirm Modal */}
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel={confirm.confirmLabel}
+          variant={confirm.variant}
+          loading={confirmLoading}
+          onConfirm={handleConfirmAction}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </Layout>
   );
 }

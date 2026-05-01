@@ -103,7 +103,7 @@ func paginatedOvertimeList(c *gin.Context, role models.Role, status models.Overt
 
 	data, total, err := services.GetOvertimesByStatusService(user.ID, role, status, user.DepartmentID.String(), page, pageSize)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Message: "V2-TEST-ERROR", Error: err.Error()})
+		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
 	}
 
@@ -111,7 +111,7 @@ func paginatedOvertimeList(c *gin.Context, role models.Role, status models.Overt
 
 	c.JSON(http.StatusOK, models.APIResponse{
 		Success: true,
-		Message: "V2-TEST",
+
 		Data:    data,
 		Meta: &models.PaginationMeta{
 			Page:       page,

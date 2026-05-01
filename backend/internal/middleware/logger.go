@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -69,15 +70,45 @@ func LoggerMiddleware() gin.HandlerFunc {
 	}
 }
 
+// sensitiveFields are field names whose values should be masked in logs.
+var sensitiveFields = []string{"password", "new_password", "password_hash"}
+
+func maskSensitiveFields(data []byte) []byte {
+	if len(data) == 0 {
+		return data
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return data
+	}
+
+	for key := range parsed {
+		for _, sensitive := range sensitiveFields {
+			if strings.EqualFold(key, sensitive) {
+				parsed[key] = "[REDACTED]"
+			}
+		}
+	}
+
+	masked, err := json.Marshal(parsed)
+	if err != nil {
+		return data
+	}
+	return masked
+}
+
 func formatJSON(data []byte) string {
 	if len(data) == 0 {
 		return "{}"
 	}
 
+	masked := maskSensitiveFields(data)
+
 	var pretty bytes.Buffer
-	err := json.Indent(&pretty, data, "", "  ")
+	err := json.Indent(&pretty, masked, "", "  ")
 	if err != nil {
-		return string(data)
+		return string(masked)
 	}
 
 	return pretty.String()
