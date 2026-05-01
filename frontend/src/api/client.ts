@@ -12,13 +12,14 @@ api.interceptors.response.use(
   (error) => {
     const message = error.response?.data?.error || error.message || 'An unexpected error occurred';
     
-    if (error.response?.status === 401) {
-      // Don't show toast for 401 if we are already on login page
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Don't show toast for 401/403 if we are already on login page
       if (window.location.pathname !== '/login') {
+        const title = error.response?.status === 403 ? 'Access Denied' : 'Session Expired';
         eventBus.emit('SHOW_TOAST', {
           type: 'error',
-          title: 'Session Expired',
-          message: 'Please login again.',
+          title: title,
+          message: message,
         });
         window.location.href = '/login';
       }

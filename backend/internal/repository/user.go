@@ -84,3 +84,12 @@ func DeleteUserRepo(id string, actorID uuid.UUID) error {
 	_, err := config.DB.Exec(context.Background(), "UPDATE users SET deleted_at = NOW(), deleted_by = $1, updated_at = NOW() WHERE id = $2", actorID, id)
 	return err
 }
+
+func GetUserBlockStatusRepo(id uuid.UUID) (bool, error) {
+	var isBlocked bool
+	err := config.DB.QueryRow(context.Background(), "SELECT is_blocked FROM users WHERE id = $1 AND deleted_at IS NULL", id).Scan(&isBlocked)
+	if err != nil {
+		return false, err
+	}
+	return isBlocked, nil
+}
