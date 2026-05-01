@@ -92,7 +92,7 @@ func UserTable() error {
 		END IF;
 
 		-- Link existing users to first dept if needed
-		UPDATE users SET department_id = 	(SELECT id FROM departments LIMIT 1) WHERE department_id IS NULL;
+		UPDATE users SET department_id = (SELECT id FROM departments ORDER BY created_at LIMIT 1) WHERE department_id IS NULL;
 	END $$;
 
 	-- Indexes
@@ -194,8 +194,9 @@ func OvertimeTable() error {
 			ALTER TABLE overtimes DROP COLUMN department;
 		END IF;
 
-		-- Link existing overtimes to first dept if needed
-		UPDATE overtimes SET department_id = (SELECT id FROM departments LIMIT 1) WHERE department_id IS NULL;
+		-- Link existing overtimes to user's current dept, or first dept as fallback
+		UPDATE overtimes o SET department_id = u.department_id FROM users u WHERE o.user_id = u.id AND o.department_id IS NULL;
+		UPDATE overtimes SET department_id = (SELECT id FROM departments ORDER BY created_at LIMIT 1) WHERE department_id IS NULL;
 	END $$;
 	`
 

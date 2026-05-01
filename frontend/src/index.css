@@ -35,16 +35,18 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 20px var(--accent-glow);
 
   --transition: 0.2s ease;
   --transition-slow: 0.35s ease;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -60,10 +62,22 @@ body {
 }
 
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
 
 /* ─── Layout ─── */
 .app-layout {
@@ -345,16 +359,50 @@ tbody tr:last-child td {
   text-transform: capitalize;
 }
 
-.badge-pending { background: var(--warning-bg); color: var(--warning); }
-.badge-checked { background: var(--info-bg); color: var(--info); }
-.badge-approved { background: var(--success-bg); color: var(--success); }
-.badge-rejected { background: var(--danger-bg); color: var(--danger); }
+.badge-pending {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
 
-.badge-admin { background: var(--accent-glow); color: var(--accent-primary-hover); }
-.badge-applicant { background: var(--info-bg); color: var(--info); }
-.badge-checker { background: var(--warning-bg); color: var(--warning); }
-.badge-approver { background: var(--success-bg); color: var(--success); }
-.badge-finance { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
+.badge-checked {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.badge-approved {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge-rejected {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.badge-admin {
+  background: var(--accent-glow);
+  color: var(--accent-primary-hover);
+}
+
+.badge-applicant {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.badge-checker {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.badge-approver {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge-finance {
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
+}
 
 /* ─── Buttons ─── */
 .btn {
@@ -448,7 +496,8 @@ tbody tr:last-child td {
   margin-bottom: 6px;
 }
 
-.form-input, .form-select {
+.form-input,
+.form-select {
   width: 100%;
   padding: 10px 14px;
   background: var(--bg-input);
@@ -461,7 +510,8 @@ tbody tr:last-child td {
   outline: none;
 }
 
-.form-input:focus, .form-select:focus {
+.form-input:focus,
+.form-select:focus {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
@@ -635,8 +685,17 @@ tbody tr:last-child td {
   gap: 10px;
 }
 
-.alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
-.alert-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+.alert-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.alert-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
 
 /* ─── Empty State ─── */
 .empty-state {
@@ -675,17 +734,31 @@ tbody tr:last-child td {
 
 /* ─── Animations ─── */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ─── Toast Notifications ─── */
@@ -729,10 +802,25 @@ tbody tr:last-child td {
   animation: toastProgress var(--duration) linear forwards;
 }
 
-.toast-success { color: var(--success); border-left: 4px solid var(--success); }
-.toast-error { color: var(--danger); border-left: 4px solid var(--danger); }
-.toast-info { color: var(--info); border-left: 4px solid var(--info); }
-.toast-warning { color: var(--warning); border-left: 4px solid var(--warning); }
+.toast-success {
+  color: var(--success);
+  border-left: 4px solid var(--success);
+}
+
+.toast-error {
+  color: var(--danger);
+  border-left: 4px solid var(--danger);
+}
+
+.toast-info {
+  color: var(--info);
+  border-left: 4px solid var(--info);
+}
+
+.toast-warning {
+  color: var(--warning);
+  border-left: 4px solid var(--warning);
+}
 
 .toast-content {
   flex: 1;
@@ -764,20 +852,47 @@ tbody tr:last-child td {
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes toastProgress {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0); }
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
 }
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .main-content { margin-left: 0; padding: 20px; }
-  .form-row { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }

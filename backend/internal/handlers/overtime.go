@@ -138,6 +138,10 @@ func GetApprovedOvertimesHandler(c *gin.Context) {
 	paginatedOvertimeList(c, models.Finance, models.OvertimeApproved)
 }
 
+func AdminGetAllOvertimesHandler(c *gin.Context) {
+	paginatedOvertimeList(c, models.Admin, "")
+}
+
 func CheckOvertimeHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
