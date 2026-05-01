@@ -25,7 +25,16 @@ type AdminUpdateUserInput struct {
 	DepartmentID string      `json:"department_id" binding:"required"`
 }
 
+func GetCurrentUser(c *gin.Context) *models.User {
+	val, exists := c.Get("user")
+	if !exists {
+		return nil
+	}
+	return val.(*models.User)
+}
+
 func AdminCreateUserHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	var input AdminCreateUserInput
 	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
@@ -41,7 +50,7 @@ func AdminCreateUserHandler(c *gin.Context) {
 		DepartmentID: deptID,
 	}
 
-	data, err := services.CreateUserService(&user)
+	data, err := services.CreateUserService(&user, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -71,6 +80,7 @@ func AdminGetDepartmentsHandler(c *gin.Context) {
 }
 
 func AdminUpdateUserHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	id := c.Param("id")
 	var input AdminUpdateUserInput
 	if err := c.ShouldBind(&input); err != nil {
@@ -78,7 +88,7 @@ func AdminUpdateUserHandler(c *gin.Context) {
 		return
 	}
 
-	err := services.AdminUpdateUserService(id, input.Email, input.Name, input.Role, input.DepartmentID)
+	err := services.AdminUpdateUserService(id, input.Email, input.Name, input.Role, input.DepartmentID, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -92,6 +102,7 @@ type AdminBlockUserInput struct {
 }
 
 func AdminBlockUserHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	id := c.Param("id")
 	var input AdminBlockUserInput
 	if err := c.ShouldBind(&input); err != nil {
@@ -99,7 +110,7 @@ func AdminBlockUserHandler(c *gin.Context) {
 		return
 	}
 
-	err := services.BlockUserService(id, input.IsBlocked)
+	err := services.BlockUserService(id, input.IsBlocked, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -109,9 +120,10 @@ func AdminBlockUserHandler(c *gin.Context) {
 }
 
 func AdminResetPasswordHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	id := c.Param("id")
 
-	tempPassword, err := services.ResetUserPasswordService(id)
+	tempPassword, err := services.ResetUserPasswordService(id, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -125,9 +137,10 @@ func AdminResetPasswordHandler(c *gin.Context) {
 }
 
 func AdminDeleteUserHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	id := c.Param("id")
 
-	err := services.DeleteUserService(id)
+	err := services.DeleteUserService(id, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -141,13 +154,14 @@ type DepartmentInput struct {
 }
 
 func AdminCreateDepartmentHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	var input DepartmentInput
 	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
 		return
 	}
 
-	id, err := repository.CreateDepartmentRepo(input.Name)
+	id, err := repository.CreateDepartmentRepo(input.Name, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -157,6 +171,7 @@ func AdminCreateDepartmentHandler(c *gin.Context) {
 }
 
 func AdminUpdateDepartmentHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	id := c.Param("id")
 	var input DepartmentInput
 	if err := c.ShouldBind(&input); err != nil {
@@ -165,7 +180,7 @@ func AdminUpdateDepartmentHandler(c *gin.Context) {
 	}
 
 	parsedID, _ := uuid.Parse(id)
-	err := repository.UpdateDepartmentRepo(parsedID, input.Name)
+	err := repository.UpdateDepartmentRepo(parsedID, input.Name, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -175,10 +190,11 @@ func AdminUpdateDepartmentHandler(c *gin.Context) {
 }
 
 func AdminDeleteDepartmentHandler(c *gin.Context) {
+	actor := GetCurrentUser(c)
 	id := c.Param("id")
 	parsedID, _ := uuid.Parse(id)
 
-	err := repository.DeleteDepartmentRepo(parsedID)
+	err := repository.DeleteDepartmentRepo(parsedID, actor.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return

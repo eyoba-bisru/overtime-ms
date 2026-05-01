@@ -29,5 +29,4 @@ type User struct {
 	EmailVerifiedAt     *time.Time `json:"email_verified_at,omitempty" db:"email_verified_at"`
 	ForcePasswordChange bool       `json:"force_password_change" db:"force_password_change"`
 	LastLoginAt         *time.Time `json:"last_login_at,omitempty" db:"last_login_at"`
-	DeletedAt           *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 }

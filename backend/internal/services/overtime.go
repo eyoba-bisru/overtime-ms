@@ -31,7 +31,7 @@ func calculateDuration(startTimeStr, endTimeStr string) (float64, error) {
 	return duration, nil
 }
 
-func CreateOvertimeService(input models.Overtime) (uuid.UUID, error) {
+func CreateOvertimeService(input models.Overtime, actorID uuid.UUID) (uuid.UUID, error) {
 	input.Status = models.OvertimePending
 	input.ID = uuid.New()
 
@@ -50,14 +50,10 @@ func CreateOvertimeService(input models.Overtime) (uuid.UUID, error) {
 	input.CreatedAt = time.Now()
 	input.UpdatedAt = time.Now()
 
-	data, err := repository.CreateOvertimeRepo(&input)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	return data, nil
+	return repository.CreateOvertimeRepo(&input, actorID)
 }
 
-func UpdateOvertimeService(id uuid.UUID, userID uuid.UUID, input models.Overtime) error {
+func UpdateOvertimeService(id uuid.UUID, userID uuid.UUID, input models.Overtime, actorID uuid.UUID) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
@@ -99,7 +95,7 @@ func UpdateOvertimeService(id uuid.UUID, userID uuid.UUID, input models.Overtime
 	}
 	overtime.Duration = duration
 
-	return repository.UpdateOvertimeRepo(overtime)
+	return repository.UpdateOvertimeRepo(overtime, actorID)
 }
 
 func GetOvertimeByIDService(id uuid.UUID) (*models.Overtime, error) {
@@ -120,7 +116,7 @@ func GetOvertimesByStatusService(userID uuid.UUID, role models.Role, status mode
 	return overtimes, total, nil
 }
 
-func CheckOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string) error {
+func CheckOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string, actorID uuid.UUID) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
@@ -138,10 +134,10 @@ func CheckOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string)
 		return models.ErrInvalidTransition
 	}
 
-	return repository.UpdateOvertimeStatusRepo(id, models.OvertimeChecked)
+	return repository.UpdateOvertimeStatusRepo(id, models.OvertimeChecked, actorID)
 }
 
-func ApproveOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string) error {
+func ApproveOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string, actorID uuid.UUID) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
@@ -159,18 +155,16 @@ func ApproveOvertimeService(id uuid.UUID, userRole models.Role, userDeptID strin
 		return models.ErrInvalidTransition
 	}
 
-	return repository.UpdateOvertimeStatusRepo(id, models.OvertimeApproved)
+	return repository.UpdateOvertimeStatusRepo(id, models.OvertimeApproved, actorID)
 }
 
-func RejectOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string) error {
+func RejectOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string, actorID uuid.UUID) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
 	}
 
 	if userRole != models.Admin && overtime.DepartmentID.String() != userDeptID && userRole != models.Finance {
-		// Finance can reject from any dept? Usually they don't reject but let's be safe.
-		// Approvers and Checkers MUST be in same dept.
 		if userRole == models.Checker || userRole == models.Approver {
 			return models.ErrUnauthorized
 		}
@@ -183,20 +177,20 @@ func RejectOvertimeService(id uuid.UUID, userRole models.Role, userDeptID string
 	if (userRole == models.Checker && overtime.Status == models.OvertimePending) ||
 		(userRole == models.Approver && overtime.Status == models.OvertimeChecked) ||
 		userRole == models.Admin {
-		return repository.UpdateOvertimeStatusRepo(id, models.OvertimeRejected)
+		return repository.UpdateOvertimeStatusRepo(id, models.OvertimeRejected, actorID)
 	}
 
 	return models.ErrUnauthorized
 }
 
-func DeleteOvertimeService(id uuid.UUID, userID uuid.UUID, userRole models.Role) error {
+func DeleteOvertimeService(id uuid.UUID, userID uuid.UUID, userRole models.Role, actorID uuid.UUID) error {
 	overtime, err := repository.GetOvertimeByIDRepo(id)
 	if err != nil {
 		return err
 	}
 
 	if userRole == models.Admin || (overtime.UserID == userID && overtime.Status == models.OvertimePending) {
-		return repository.DeleteOvertimeRepo(id)
+		return repository.DeleteOvertimeRepo(id, actorID)
 	}
 
 	return models.ErrUnauthorized

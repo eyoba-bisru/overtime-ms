@@ -14,44 +14,67 @@ func UserTable() error {
 	-- Departments Table
 	CREATE TABLE IF NOT EXISTS departments (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-		name TEXT UNIQUE NOT NULL
+		name TEXT UNIQUE NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		deleted_at TIMESTAMPTZ,
+		created_by UUID,
+		updated_by UUID,
+		deleted_by UUID
 	);
 
 	-- Users Table
 	CREATE TABLE IF NOT EXISTS users (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
 		email CITEXT UNIQUE NOT NULL,
-
 		name TEXT NOT NULL CHECK (char_length(name) >= 2),
-
 		password_hash TEXT,
-
 		role TEXT NOT NULL DEFAULT 'applicant'
 			CHECK (role IN ('admin','checker','approver','applicant','finance')),
-		
 		department_id UUID,
-
 		is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
-
 		email_verified BOOLEAN NOT NULL DEFAULT FALSE,
 		email_verified_at TIMESTAMPTZ,
-
 		force_password_change BOOLEAN NOT NULL DEFAULT FALSE,
-
 		last_login_at TIMESTAMPTZ,
-
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		deleted_at TIMESTAMPTZ
+		deleted_at TIMESTAMPTZ,
+		created_by UUID,
+		updated_by UUID,
+		deleted_by UUID
 	);
 
 	-- Add columns if they don't exist (Migration support)
 	DO $$ BEGIN
+		-- Departments
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='departments' AND column_name='deleted_at') THEN
+			ALTER TABLE departments ADD COLUMN deleted_at TIMESTAMPTZ;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='departments' AND column_name='created_by') THEN
+			ALTER TABLE departments ADD COLUMN created_by UUID;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='departments' AND column_name='updated_by') THEN
+			ALTER TABLE departments ADD COLUMN updated_by UUID;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='departments' AND column_name='deleted_by') THEN
+			ALTER TABLE departments ADD COLUMN deleted_by UUID;
+		END IF;
+
+		-- Users
 		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='department_id') THEN
 			ALTER TABLE users ADD COLUMN department_id UUID;
 		END IF;
-		
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='created_by') THEN
+			ALTER TABLE users ADD COLUMN created_by UUID;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='updated_by') THEN
+			ALTER TABLE users ADD COLUMN updated_by UUID;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='deleted_by') THEN
+			ALTER TABLE users ADD COLUMN deleted_by UUID;
+		END IF;
+
 		IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='department') THEN
 			ALTER TABLE users DROP COLUMN department;
 		END IF;
@@ -93,11 +116,13 @@ func UserTrigger() error {
 	$$ LANGUAGE plpgsql;
 
 	DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
+	CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-	CREATE TRIGGER trg_users_updated_at
-	BEFORE UPDATE ON users
-	FOR EACH ROW
-	EXECUTE FUNCTION set_updated_at();
+	DROP TRIGGER IF EXISTS trg_departments_updated_at ON departments;
+	CREATE TRIGGER trg_departments_updated_at BEFORE UPDATE ON departments FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+	DROP TRIGGER IF EXISTS trg_overtimes_updated_at ON overtimes;
+	CREATE TRIGGER trg_overtimes_updated_at BEFORE UPDATE ON overtimes FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 	`
 
 	_, err := DB.Exec(context.Background(), query)
@@ -124,37 +149,28 @@ func OvertimeTable() error {
 	-- Table
 	CREATE TABLE IF NOT EXISTS overtimes (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
 		user_id UUID NOT NULL,
-
 		date DATE NOT NULL,
-
 		start_time TIME NOT NULL,
 		end_time TIME NOT NULL,
-
 		job_done TEXT NOT NULL CHECK (char_length(job_done) >= 3),
-
 		status overtime_status NOT NULL DEFAULT 'pending',
 		department_id UUID NOT NULL,
 		program overtime_program NOT NULL,
 		duration NUMERIC(5,2) NOT NULL DEFAULT 0,
-
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
 		deleted_at TIMESTAMPTZ,
+		created_by UUID,
+		updated_by UUID,
+		deleted_by UUID,
 
 		-- Constraints
-		CONSTRAINT fk_overtime_user
-			FOREIGN KEY (user_id)
-			REFERENCES users(id)
-			ON DELETE CASCADE,
-
-		CONSTRAINT valid_time_range
-			CHECK (start_time < end_time)
+		CONSTRAINT fk_overtime_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		CONSTRAINT valid_time_range CHECK (start_time < end_time)
 	);
 
-	-- Indexes (VERY IMPORTANT for performance)
+	-- Indexes
 	CREATE INDEX IF NOT EXISTS idx_overtimes_user_id ON overtimes(user_id);
 	CREATE INDEX IF NOT EXISTS idx_overtimes_status ON overtimes(status);
 	CREATE INDEX IF NOT EXISTS idx_overtimes_date ON overtimes(date);
@@ -163,6 +179,15 @@ func OvertimeTable() error {
 	DO $$ BEGIN
 		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='overtimes' AND column_name='department_id') THEN
 			ALTER TABLE overtimes ADD COLUMN department_id UUID;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='overtimes' AND column_name='created_by') THEN
+			ALTER TABLE overtimes ADD COLUMN created_by UUID;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='overtimes' AND column_name='updated_by') THEN
+			ALTER TABLE overtimes ADD COLUMN updated_by UUID;
+		END IF;
+		IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='overtimes' AND column_name='deleted_by') THEN
+			ALTER TABLE overtimes ADD COLUMN deleted_by UUID;
 		END IF;
 
 		IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='overtimes' AND column_name='department') THEN

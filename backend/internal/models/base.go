@@ -32,7 +32,11 @@ type PaginationMeta struct {
 }
 
 type Base struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID        uuid.UUID  `json:"id" db:"id"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
+	CreatedBy *uuid.UUID `json:"created_by,omitempty" db:"created_by"`
+	UpdatedBy *uuid.UUID `json:"updated_by,omitempty" db:"updated_by"`
+	DeletedBy *uuid.UUID `json:"deleted_by,omitempty" db:"deleted_by"`
 }

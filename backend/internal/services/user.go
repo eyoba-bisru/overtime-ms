@@ -10,12 +10,13 @@ import (
 	"github.com/google/uuid"
 )
 
-func CreateUserService(user *models.User) (string, error) {
-
+func CreateUserService(user *models.User, actorID uuid.UUID) (string, error) {
 	if user.Role == "" {
 		user.Role = models.Applicant
 	}
-	user.ID = uuid.New()
+	if user.ID == uuid.Nil {
+		user.ID = uuid.New()
+	}
 
 	hashedPassword, err := utils.HashPassword(user.PasswordHash)
 	if err != nil {
@@ -23,12 +24,7 @@ func CreateUserService(user *models.User) (string, error) {
 	}
 	user.PasswordHash = string(hashedPassword)
 
-	data, err := repository.CreateUserRepo(user)
-	if err != nil {
-		return "", err
-	}
-
-	return data, nil
+	return repository.CreateUserRepo(user, actorID)
 }
 
 func LoginService(user *models.User) (*models.User, string, bool, error) {
@@ -47,7 +43,8 @@ func LoginService(user *models.User) (*models.User, string, bool, error) {
 
 	now := time.Now()
 	existingUser.LastLoginAt = &now
-	_, err = repository.UpdateUserRepo(existingUser)
+	// Use the user themselves as the actor for updating last login
+	_, err = repository.UpdateUserRepo(existingUser, existingUser.ID)
 	if err != nil {
 		return nil, "", false, err
 	}
@@ -60,11 +57,11 @@ func LoginService(user *models.User) (*models.User, string, bool, error) {
 	return existingUser, token, existingUser.ForcePasswordChange, nil
 }
 
-func ChangePasswordService(userID uuid.UUID, newPassword string) error {
+func ChangePasswordService(userID uuid.UUID, newPassword string, actorID uuid.UUID) error {
 	hashedPassword, err := utils.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
 
-	return repository.UpdateUserPasswordRepo(userID.String(), hashedPassword, false)
+	return repository.UpdateUserPasswordRepo(userID.String(), hashedPassword, false, actorID)
 }

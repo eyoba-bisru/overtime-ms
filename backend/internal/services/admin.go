@@ -1,15 +1,13 @@
 package services
 
 import (
-	"context"
-	"log"
 	"math/rand"
 	"time"
 
-	"github.com/eyoba-bisru/overtime-backend/internal/config"
 	"github.com/eyoba-bisru/overtime-backend/internal/models"
 	"github.com/eyoba-bisru/overtime-backend/internal/repository"
 	"github.com/eyoba-bisru/overtime-backend/internal/utils"
+	"github.com/google/uuid"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
@@ -27,22 +25,18 @@ func GetUsersService() ([]models.User, error) {
 	return repository.GetUsersRepo()
 }
 
-func ChangeUserRoleService(id string, role models.Role) error {
-	return repository.UpdateUserRoleRepo(id, role)
+func BlockUserService(id string, isBlocked bool, actorID uuid.UUID) error {
+	return repository.UpdateUserBlockStatusRepo(id, isBlocked, actorID)
 }
 
-func BlockUserService(id string, isBlocked bool) error {
-	return repository.UpdateUserBlockStatusRepo(id, isBlocked)
-}
-
-func ResetUserPasswordService(id string) (string, error) {
+func ResetUserPasswordService(id string, actorID uuid.UUID) (string, error) {
 	tempPassword := generateRandomPassword(12)
 	hashedPassword, err := utils.HashPassword(tempPassword)
 	if err != nil {
 		return "", err
 	}
 
-	err = repository.UpdateUserPasswordRepo(id, string(hashedPassword), true)
+	err = repository.UpdateUserPasswordRepo(id, string(hashedPassword), true, actorID)
 	if err != nil {
 		return "", err
 	}
@@ -50,12 +44,21 @@ func ResetUserPasswordService(id string) (string, error) {
 	return tempPassword, nil
 }
 
-func DeleteUserService(id string) error {
-	return repository.DeleteUserRepo(id)
+func DeleteUserService(id string, actorID uuid.UUID) error {
+	return repository.DeleteUserRepo(id, actorID)
 }
 
-func AdminUpdateUserService(id string, email, name string, role models.Role, departmentID string) error {
-	log.Printf("Updating user %s: email=%s, name=%s, role=%s, deptID=%s", id, email, name, role, departmentID)
-	_, err := config.DB.Exec(context.Background(), "UPDATE users SET email = $1, name = $2, role = $3, department_id = $4::UUID, updated_at = NOW() WHERE id = $5::UUID AND deleted_at IS NULL", email, name, role, departmentID, id)
+func AdminUpdateUserService(id string, email, name string, role models.Role, departmentID string, actorID uuid.UUID) error {
+	parsedID, _ := uuid.Parse(id)
+	deptID, _ := uuid.Parse(departmentID)
+	user := &models.User{
+		Base:         models.Base{ID: parsedID},
+		Email:        email,
+		Name:         name,
+		Role:         role,
+		DepartmentID: deptID,
+	}
+
+	_, err := repository.UpdateUserRepo(user, actorID)
 	return err
 }

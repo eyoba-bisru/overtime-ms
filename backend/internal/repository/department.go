@@ -9,7 +9,7 @@ import (
 )
 
 func GetDepartmentsRepo() ([]models.Department, error) {
-	rows, err := config.DB.Query(context.Background(), "SELECT id, name FROM departments ORDER BY name ASC")
+	rows, err := config.DB.Query(context.Background(), "SELECT id, name FROM departments WHERE deleted_at IS NULL ORDER BY name ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -27,18 +27,18 @@ func GetDepartmentsRepo() ([]models.Department, error) {
 	return depts, nil
 }
 
-func CreateDepartmentRepo(name string) (uuid.UUID, error) {
+func CreateDepartmentRepo(name string, actorID uuid.UUID) (uuid.UUID, error) {
 	var id uuid.UUID
-	err := config.DB.QueryRow(context.Background(), "INSERT INTO departments (name) VALUES ($1) RETURNING id", name).Scan(&id)
+	err := config.DB.QueryRow(context.Background(), "INSERT INTO departments (name, created_by, updated_by) VALUES ($1, $2, $2) RETURNING id", name, actorID).Scan(&id)
 	return id, err
 }
 
-func UpdateDepartmentRepo(id uuid.UUID, name string) error {
-	_, err := config.DB.Exec(context.Background(), "UPDATE departments SET name = $1 WHERE id = $2", name, id)
+func UpdateDepartmentRepo(id uuid.UUID, name string, actorID uuid.UUID) error {
+	_, err := config.DB.Exec(context.Background(), "UPDATE departments SET name = $1, updated_by = $2 WHERE id = $3 AND deleted_at IS NULL", name, actorID, id)
 	return err
 }
 
-func DeleteDepartmentRepo(id uuid.UUID) error {
-	_, err := config.DB.Exec(context.Background(), "DELETE FROM departments WHERE id = $1", id)
+func DeleteDepartmentRepo(id uuid.UUID, actorID uuid.UUID) error {
+	_, err := config.DB.Exec(context.Background(), "UPDATE departments SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2", actorID, id)
 	return err
 }

@@ -47,7 +47,7 @@ func CreateOvertimeHandler(c *gin.Context) {
 	user := c.MustGet("user").(*models.User)
 	input.UserID = user.ID
 	input.DepartmentID = user.DepartmentID
-	data, err := services.CreateOvertimeService(input)
+	data, err := services.CreateOvertimeService(input, user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -71,7 +71,7 @@ func UpdateOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.UpdateOvertimeService(id, user.ID, input)
+	err = services.UpdateOvertimeService(id, user.ID, input, user.ID)
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -147,7 +147,7 @@ func CheckOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.CheckOvertimeService(id, user.Role, user.DepartmentID.String())
+	err = services.CheckOvertimeService(id, user.Role, user.DepartmentID.String(), user.ID)
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -165,7 +165,7 @@ func ApproveOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.ApproveOvertimeService(id, user.Role, user.DepartmentID.String())
+	err = services.ApproveOvertimeService(id, user.Role, user.DepartmentID.String(), user.ID)
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -183,7 +183,7 @@ func RejectOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.RejectOvertimeService(id, user.Role, user.DepartmentID.String())
+	err = services.RejectOvertimeService(id, user.Role, user.DepartmentID.String(), user.ID)
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return
@@ -201,7 +201,7 @@ func DeleteOvertimeHandler(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(*models.User)
-	err = services.DeleteOvertimeService(id, user.ID, user.Role)
+	err = services.DeleteOvertimeService(id, user.ID, user.Role, user.ID)
 	if err != nil {
 		c.JSON(mapServiceError(err), models.APIResponse{Success: false, Error: err.Error()})
 		return

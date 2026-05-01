@@ -61,7 +61,7 @@ func ChangePasswordHandler(c *gin.Context) {
 
 	user := c.MustGet("user").(*models.User)
 
-	err := services.ChangePasswordService(user.ID, input.NewPassword)
+	err := services.ChangePasswordService(user.ID, input.NewPassword, user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
 		return

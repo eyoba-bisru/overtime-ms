@@ -9,10 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
-func CreateOvertimeRepo(overtime *models.Overtime) (uuid.UUID, error) {
+func CreateOvertimeRepo(overtime *models.Overtime, actorID uuid.UUID) (uuid.UUID, error) {
 	var data uuid.UUID
-
-	err := config.DB.QueryRow(context.Background(), "INSERT INTO overtimes (user_id, date, start_time, end_time, job_done, status, program, department_id, duration, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id", overtime.UserID, overtime.Date, overtime.StartTime, overtime.EndTime, overtime.JobDone, overtime.Status, overtime.Program, overtime.DepartmentID, overtime.Duration, overtime.CreatedAt, overtime.UpdatedAt).Scan(&data)
+	err := config.DB.QueryRow(context.Background(), "INSERT INTO overtimes (user_id, date, start_time, end_time, job_done, status, program, department_id, duration, created_at, updated_at, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12) RETURNING id", overtime.UserID, overtime.Date, overtime.StartTime, overtime.EndTime, overtime.JobDone, overtime.Status, overtime.Program, overtime.DepartmentID, overtime.Duration, overtime.CreatedAt, overtime.UpdatedAt, actorID).Scan(&data)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -22,11 +21,11 @@ func CreateOvertimeRepo(overtime *models.Overtime) (uuid.UUID, error) {
 func GetOvertimeByIDRepo(id uuid.UUID) (*models.Overtime, error) {
 	var overtime models.Overtime
 	err := config.DB.QueryRow(context.Background(), `
-		SELECT o.id, o.user_id, u.name as user_name, o.department_id, COALESCE(d.name, 'Unknown') as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
+		SELECT o.id, o.user_id, u.name as user_name, o.department_id, COALESCE(d.name, 'Unknown') as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at, o.created_by, o.updated_by
 		FROM overtimes o
 		JOIN users u ON o.user_id = u.id
 		LEFT JOIN departments d ON o.department_id = d.id
-		WHERE o.id = $1 AND o.deleted_at IS NULL`, id).Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.DepartmentID, &overtime.DepartmentName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
+		WHERE o.id = $1 AND o.deleted_at IS NULL`, id).Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.DepartmentID, &overtime.DepartmentName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt, &overtime.CreatedBy, &overtime.UpdatedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +56,7 @@ func buildOvertimeQuery(role models.Role, status models.OvertimeStatus, userID u
 
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM overtimes o WHERE %s", where)
 	selectQuery := fmt.Sprintf(`
-		SELECT o.id, o.user_id, u.name as user_name, o.department_id, COALESCE(d.name, 'Unknown') as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at
+		SELECT o.id, o.user_id, u.name as user_name, o.department_id, COALESCE(d.name, 'Unknown') as department_name, o.date::TEXT, o.start_time::TEXT, o.end_time::TEXT, o.job_done, o.status, o.program, o.duration, o.created_at, o.updated_at, o.created_by, o.updated_by
 		FROM overtimes o
 		JOIN users u ON o.user_id = u.id
 		LEFT JOIN departments d ON o.department_id = d.id
@@ -95,7 +94,7 @@ func GetOvertimesRepo(userID uuid.UUID, role models.Role, status models.Overtime
 	var overtimes []models.Overtime
 	for rows.Next() {
 		var overtime models.Overtime
-		err := rows.Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.DepartmentID, &overtime.DepartmentName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt)
+		err := rows.Scan(&overtime.ID, &overtime.UserID, &overtime.UserName, &overtime.DepartmentID, &overtime.DepartmentName, &overtime.Date, &overtime.StartTime, &overtime.EndTime, &overtime.JobDone, &overtime.Status, &overtime.Program, &overtime.Duration, &overtime.CreatedAt, &overtime.UpdatedAt, &overtime.CreatedBy, &overtime.UpdatedBy)
 		if err != nil {
 			return nil, err
 		}
@@ -105,18 +104,18 @@ func GetOvertimesRepo(userID uuid.UUID, role models.Role, status models.Overtime
 	return overtimes, nil
 }
 
-func UpdateOvertimeRepo(overtime *models.Overtime) error {
-	_, err := config.DB.Exec(context.Background(), "UPDATE overtimes SET date = $1, start_time = $2, end_time = $3, job_done = $4, program = $5, duration = $6, updated_at = NOW() WHERE id = $7 AND deleted_at IS NULL", overtime.Date, overtime.StartTime, overtime.EndTime, overtime.JobDone, overtime.Program, overtime.Duration, overtime.ID)
+func UpdateOvertimeRepo(overtime *models.Overtime, actorID uuid.UUID) error {
+	_, err := config.DB.Exec(context.Background(), "UPDATE overtimes SET date = $1, start_time = $2, end_time = $3, job_done = $4, program = $5, duration = $6, updated_at = NOW(), updated_by = $7 WHERE id = $8 AND deleted_at IS NULL", overtime.Date, overtime.StartTime, overtime.EndTime, overtime.JobDone, overtime.Program, overtime.Duration, actorID, overtime.ID)
 	return err
 }
 
-func UpdateOvertimeStatusRepo(id uuid.UUID, status models.OvertimeStatus) error {
-	_, err := config.DB.Exec(context.Background(), "UPDATE overtimes SET status = $1, updated_at = NOW() WHERE id = $2", status, id)
+func UpdateOvertimeStatusRepo(id uuid.UUID, status models.OvertimeStatus, actorID uuid.UUID) error {
+	_, err := config.DB.Exec(context.Background(), "UPDATE overtimes SET status = $1, updated_at = NOW(), updated_by = $2 WHERE id = $3 AND deleted_at IS NULL", status, actorID, id)
 	return err
 }
 
-func DeleteOvertimeRepo(id uuid.UUID) error {
-	_, err := config.DB.Exec(context.Background(), "UPDATE overtimes SET deleted_at = NOW() WHERE id = $1", id)
+func DeleteOvertimeRepo(id uuid.UUID, actorID uuid.UUID) error {
+	_, err := config.DB.Exec(context.Background(), "UPDATE overtimes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2", actorID, id)
 	return err
 }
 

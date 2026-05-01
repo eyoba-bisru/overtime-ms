@@ -82,7 +82,7 @@ func main() {
 	}
 
 	// 7. Save to DB
-	id, err := repository.CreateUserRepo(user)
+	id, err := repository.CreateUserRepo(user, uuid.Nil)
 	if err != nil {
 		log.Fatalf("Error creating user: %v", err)
 	}
