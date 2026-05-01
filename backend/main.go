@@ -48,6 +48,9 @@ func main() {
 	{
 		admin.POST("/users", handlers.AdminCreateUserHandler)
 		admin.GET("/departments", handlers.AdminGetDepartmentsHandler)
+		admin.POST("/departments", handlers.AdminCreateDepartmentHandler)
+		admin.PATCH("/departments/:id", handlers.AdminUpdateDepartmentHandler)
+		admin.DELETE("/departments/:id", handlers.AdminDeleteDepartmentHandler)
 		admin.GET("/users", handlers.AdminGetUsersHandler)
 		admin.PATCH("/users/:id", handlers.AdminUpdateUserHandler)
 		admin.PATCH("/users/:id/block", handlers.AdminBlockUserHandler)

@@ -7,6 +7,7 @@ import MyOvertimesPage from './pages/MyOvertimesPage';
 import CreateOvertimePage from './pages/CreateOvertimePage';
 import ReviewPage from './pages/ReviewPage';
 import UserManagementPage from './pages/UserManagementPage';
+import DepartmentManagementPage from './pages/DepartmentManagementPage';
 import EditOvertimePage from './pages/EditOvertimePage';
 import type { Role } from './types';
 
@@ -111,6 +112,11 @@ export default function App() {
           <Route path="/admin/users" element={
             <ProtectedRoute roles={['admin']}>
               <UserManagementPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/departments" element={
+            <ProtectedRoute roles={['admin']}>
+              <DepartmentManagementPage />
             </ProtectedRoute>
           } />
           <Route path="/admin/overtime" element={

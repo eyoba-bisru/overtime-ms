@@ -135,3 +135,54 @@ func AdminDeleteUserHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "User deleted successfully"})
 }
+
+type DepartmentInput struct {
+	Name string `json:"name" binding:"required"`
+}
+
+func AdminCreateDepartmentHandler(c *gin.Context) {
+	var input DepartmentInput
+	if err := c.ShouldBind(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	id, err := repository.CreateDepartmentRepo(input.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, models.APIResponse{Success: true, Message: "Department created successfully", Data: gin.H{"id": id}})
+}
+
+func AdminUpdateDepartmentHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input DepartmentInput
+	if err := c.ShouldBind(&input); err != nil {
+		c.JSON(http.StatusBadRequest, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	parsedID, _ := uuid.Parse(id)
+	err := repository.UpdateDepartmentRepo(parsedID, input.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "Department updated successfully"})
+}
+
+func AdminDeleteDepartmentHandler(c *gin.Context) {
+	id := c.Param("id")
+	parsedID, _ := uuid.Parse(id)
+
+	err := repository.DeleteDepartmentRepo(parsedID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.APIResponse{Success: true, Message: "Department deleted successfully"})
+}

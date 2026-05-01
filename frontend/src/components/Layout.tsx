@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { path: '/overtime/checked', label: 'Checked Review', icon: '✅', roles: ['approver'] },
   { path: '/overtime/approved', label: 'Approved Records', icon: '💰', roles: ['finance'] },
   { path: '/admin/users', label: 'User Management', icon: '👥', roles: ['admin'] },
+  { path: '/admin/departments', label: 'Departments', icon: '🏢', roles: ['admin'] },
   { path: '/admin/overtime', label: 'All Overtimes', icon: '📊', roles: ['admin'] },
 ];
 
